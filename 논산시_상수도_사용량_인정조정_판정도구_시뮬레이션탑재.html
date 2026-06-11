@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>논산시 상수도 사용량 인정조정 판정 도구</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --ink: #1a1d23;
+    --ink-2: #3a3f47;
+    --ink-3: #6b7280;
+    --paper: #faf8f3;
+    --paper-2: #f3efe6;
+    --line: #d8d2c3;
+    --line-soft: #e8e3d6;
+    --accent: #1c4e80;      /* 행정 네이비 */
+    --accent-2: #2563a6;
+    --seal: #a23b3b;        /* 직인 빨강 */
+    --good: #2e7d32;
+    --warn: #b8860b;
+    --bad: #a23b3b;
+    --hi-ga: #e3f2e3;
+    --hi-na: #fff4d6;
+    --hi-da: #ffe1c4;
+    --hi-mi: #e6ecf3;
+    --shadow: 0 1px 2px rgba(26,29,35,.04), 0 4px 12px rgba(26,29,35,.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--paper); color: var(--ink); font-family: 'IBM Plex Sans KR', sans-serif; font-size: 14px; line-height: 1.5; }
+
+  /* 종이 질감 */
+  body {
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(168,148,108,.03) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(168,148,108,.03) 0%, transparent 40%);
+    min-height: 100vh;
+  }
+
+  /* ───── 헤더 ───── */
+  header {
+    background: linear-gradient(180deg, #1a3658 0%, #1c4e80 100%);
+    color: #faf8f3;
+    padding: 18px 36px;
+    border-bottom: 3px double #d4a13a;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  }
+  .header-inner { display: flex; align-items: center; gap: 18px; max-width: 1600px; margin: 0 auto; }
+  /* ───── 마스코트 ───── */
+  .mascot {
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,.25));
+  }
+  .mascot-mini {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+  .header-mini-mascots {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    margin-right: 8px;
+  }
+  .title-wrap { flex: 1; }
+  .title-wrap h1 {
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 700;
+    font-size: 19px;
+    letter-spacing: -0.5px;
+  }
+  .title-wrap .sub {
+    font-size: 11.5px;
+    color: rgba(250,248,243,.7);
+    margin-top: 2px;
+    letter-spacing: 0.3px;
+  }
+  .header-meta {
+    display: flex; gap: 24px;
+    font-size: 11.5px;
+    color: rgba(250,248,243,.85);
+  }
+  .header-meta div { text-align: right; }
+  .header-meta b { color: #d4a13a; font-weight: 500; }
+
+  /* ───── 메인 레이아웃 ───── */
+  main { max-width: 1600px; margin: 0 auto; padding: 28px 36px 80px; }
+
+  /* ───── 섹션 ───── */
+  .section {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .section-head {
+    background: var(--paper-2);
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 12px;
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--ink);
+  }
+  .section-head .num {
+    width: 24px; height: 24px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-family: 'IBM Plex Sans KR';
+    font-weight: 600;
+  }
+  .section-head .desc {
+    font-family: 'IBM Plex Sans KR';
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-3);
+    margin-left: auto;
+  }
+  .section-body { padding: 20px; }
+
+  /* ───── 1단계: 입력 영역 ───── */
+  .input-tabs {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 16px;
+  }
+  .tab {
+    padding: 10px 18px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink-3);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+  .tab:hover:not(.active) { color: var(--ink-2); }
+
+  .upload-zone {
+    border: 2px dashed var(--line);
+    border-radius: 2px;
+    padding: 32px;
+    text-align: center;
+    background: var(--paper);
+    transition: all .15s;
+    cursor: pointer;
+  }
+  .upload-zone:hover { border-color: var(--accent); background: #fff; }
+  .upload-zone.drag { border-color: var(--accent); background: #e6ecf3; }
+  .upload-zone .icon { font-size: 24px; margin-bottom: 8px; }
+  .upload-zone p { color: var(--ink-2); font-size: 13px; }
+  .upload-zone .hint { color: var(--ink-3); font-size: 11.5px; margin-top: 6px; }
+
+  .sample-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .sample-hint { color: var(--ink-3); font-size: 11.5px; }
+  .btn.sample-btn {
+    background: #2e7d32;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(46,125,50,.25);
+  }
+  .btn.sample-btn:hover { background: #1b5e20; }
+  @media (max-width: 640px) {
+    .sample-row { justify-content: center; }
+    .btn.sample-btn { width: 100%; justify-content: center; padding: 12px; font-size: 14px; }
+    header { padding: 14px 16px; }
+    main { padding: 16px 12px 60px; }
+    .header-meta { display: none; }
+  }
+
+  textarea.paste-area {
+    width: 100%;
+    min-height: 200px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--paper);
+    color: var(--ink);
+    resize: vertical;
+  }
+  textarea.paste-area:focus { outline: none; border-color: var(--accent); background: #fff; }
+
+  .btn {
+    padding: 9px 20px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 2px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { background: var(--accent-2); }
+  .btn.secondary { background: #fff; color: var(--accent); border: 1px solid var(--accent); }
+  .btn.secondary:hover { background: var(--accent); color: #fff; }
+  .btn.ghost { background: transparent; color: var(--ink-2); border: 1px solid var(--line); }
+  .btn.ghost:hover { background: var(--paper-2); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .input-actions { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+  .input-actions .sample { color: var(--ink-3); font-size: 12px; margin-left: auto; }
+  .input-actions .sample a { color: var(--accent); cursor: pointer; text-decoration: underline; }
+
+  /* ───── 2단계: 요약 ───── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1px;
+    background: var(--line-soft);
+    border: 1px solid var(--line);
+  }
+  .summary-cell {
+    background: #fff;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .summary-cell .label {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    margin-bottom: 4px;
+    letter-spacing: 0.3px;
+  }
+  .summary-cell .value {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .summary-cell .value.ga { color: var(--good); }
+  .summary-cell .value.na { color: var(--warn); }
+  .summary-cell .value.da { color: var(--seal); }
+  .summary-cell .value.mi { color: var(--accent); }
+  .summary-cell.review { background: #fffbef; border-left: 3px solid var(--warn); }
+  .summary-cell.warn { background: #fbecec; border-left: 3px solid var(--seal); }
+  .summary-cell .value.review-v { color: var(--warn); }
+  .summary-cell .value.warn-v { color: var(--seal); }
+
+  /* ───── 3단계: 결과 표 ───── */
+  .toolbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .toolbar input[type="text"] {
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    font-family: inherit;
+    font-size: 12.5px;
+    background: #fff;
+    min-width: 200px;
+  }
+  .toolbar input[type="text"]:focus { outline: none; border-color: var(--accent); }
+  .filter-chips { display: flex; gap: 4px; }
+  .chip {
+    padding: 5px 11px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    font-size: 11.5px;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: all .15s;
+    user-select: none;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .chip .count {
+    background: rgba(255,255,255,.25);
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 4px;
+    font-size: 10.5px;
+  }
+  .chip:not(.active) .count {
+    background: var(--paper-2);
+    color: var(--ink-3);
+  }
+  .toolbar .right { margin-left: auto; display: flex; gap: 8px; }
+
+  .table-wrap { overflow-x: auto; max-height: 600px; overflow-y: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    background: #fff;
+  }
+  th, td {
+    padding: 8px 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--line-soft);
+    white-space: nowrap;
+  }
+  th {
+    background: var(--paper);
+    font-weight: 600;
+    color: var(--ink-2);
+    font-size: 11.5px;
+    border-bottom: 1.5px solid var(--line);
+    position: sticky; top: 0;
+    z-index: 5;
+    letter-spacing: 0.3px;
+  }
+  tbody tr:hover { background: #fffbef; }
+  tbody tr.editing { background: #fff8d6; }
+  tbody tr.da-review { background: #fff9e6; }
+  tbody tr.da-review:hover { background: #fff3cc; }
+  tbody tr.recognized-warn { background: #fdf1f1; }
+  tbody tr.recognized-warn:hover { background: #fae3e3; }
+  tbody tr.da-review.recognized-warn { background: linear-gradient(90deg, #fff9e6 50%, #fdf1f1 50%); }
+
+  .marker {
+    display: inline-block;
+    font-size: 12px;
+    line-height: 1;
+    padding: 1px 3px;
+    border-radius: 2px;
+    cursor: help;
+  }
+  .marker.review { color: var(--warn); background: #fff4d6; }
+  .marker.warn { color: var(--seal); background: #fbecec; }
+
+  .chip.review:not(.active) { border-color: var(--warn); color: var(--warn); background: #fffbef; }
+  .chip.review.active { background: var(--warn); border-color: var(--warn); color: #fff; }
+  .chip.warn:not(.active) { border-color: var(--seal); color: var(--seal); background: #fdf1f1; }
+  .chip.warn.active { background: var(--seal); border-color: var(--seal); color: #fff; }
+
+  .actions-col button.da-btn {
+    background: var(--warn);
+    color: #fff;
+    border-color: var(--warn);
+    font-weight: 600;
+  }
+  .actions-col button.da-btn:hover {
+    background: #966b08;
+    border-color: #966b08;
+  }
+
+  td.num {
+    font-family: 'JetBrains Mono', monospace;
+    text-align: right;
+    color: var(--ink-2);
+  }
+  td.num.abnormal { color: var(--seal); font-weight: 600; }
+  td.month-status { font-size: 10.5px; color: var(--ink-3); }
+  td.month-status.s-정상 { color: var(--ink-3); }
+  td.month-status.s-인정 { color: var(--warn); background: #fff8e6; }
+  td.month-status.s-교체 { color: var(--accent); background: #e6ecf3; }
+  td.month-status.s-미검침 { color: var(--seal); background: #fbecec; font-weight: 600; }
+
+  .verdict {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-weight: 600;
+    font-size: 11.5px;
+    min-width: 42px;
+  }
+  .verdict.가 { background: var(--hi-ga); color: #1b5e20; border: 1px solid #a5d6a7; }
+  .verdict.나 { background: var(--hi-na); color: #826300; border: 1px solid #ffd86b; }
+  .verdict.다 { background: var(--hi-da); color: #8a2e2e; border: 1px solid #f4a574; }
+  .verdict.미조정 { background: var(--hi-mi); color: #1a3658; border: 1px solid #b5c5d8; }
+
+  td.reason { font-size: 11px; color: var(--ink-3); max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+  td.cust-id { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--ink-2); }
+
+  td.editable {
+    cursor: pointer;
+    position: relative;
+  }
+  td.editable:hover { background: #fff4d6 !important; }
+  td.editable select {
+    border: 1px solid var(--accent);
+    padding: 2px 4px;
+    font-family: inherit;
+    font-size: 11.5px;
+    background: #fff;
+    border-radius: 2px;
+  }
+
+  .actions-col button {
+    background: none;
+    border: 1px solid var(--line);
+    padding: 3px 8px;
+    border-radius: 2px;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--ink-2);
+    margin: 0 2px;
+  }
+  .actions-col button:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ───── 빈 상태 ───── */
+  .empty {
+    padding: 64px 24px;
+    text-align: center;
+    color: var(--ink-3);
+  }
+  .empty .big {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 16px;
+    color: var(--ink-2);
+    margin-bottom: 8px;
+  }
+
+  /* ───── 푸터 ───── */
+  footer {
+    text-align: center;
+    padding: 24px;
+    color: var(--ink-3);
+    font-size: 11.5px;
+    border-top: 1px solid var(--line-soft);
+    background: var(--paper-2);
+  }
+  footer .law {
+    font-family: 'Noto Serif KR', serif;
+    color: var(--ink-2);
+    margin-bottom: 4px;
+  }
+
+  /* ───── 토스트 ───── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 12px 20px;
+    background: var(--ink);
+    color: #faf8f3;
+    border-radius: 2px;
+    font-size: 13px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.2);
+    z-index: 1000;
+    animation: slideIn .2s ease;
+  }
+  .toast.error { background: var(--seal); }
+  .toast.success { background: var(--good); }
+  @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  /* ───── 모달 ───── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(26,29,35,.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
+  }
+  .modal {
+    background: #fff;
+    max-width: 720px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    border-radius: 2px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.2);
+  }
+  .modal-head {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--paper-2);
+  }
+  .modal-head h3 { font-family: 'Noto Serif KR', serif; font-weight: 500; font-size: 16px; }
+  .modal-head .close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--ink-3); }
+  .modal-body { padding: 24px; }
+  .modal-body h4 { font-family: 'Noto Serif KR', serif; margin: 16px 0 8px; font-size: 14px; color: var(--accent); }
+  .modal-body h4:first-child { margin-top: 0; }
+  .modal-body p, .modal-body li { font-size: 13px; line-height: 1.7; color: var(--ink-2); }
+  .modal-body ul, .modal-body ol { margin-left: 20px; }
+  .modal-body code { background: var(--paper-2); padding: 2px 6px; border-radius: 2px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
+
+  /* ───── 디테일 패널 ───── */
+  .detail-panel {
+    margin-top: 8px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    padding: 16px;
+    font-size: 12px;
+  }
+  .detail-panel h5 {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 13px;
+    margin-bottom: 8px;
+    color: var(--accent);
+    border-bottom: 1px solid var(--line-soft);
+    padding-bottom: 4px;
+  }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .detail-item { background: #fff; padding: 8px; border: 1px solid var(--line-soft); }
+  .detail-item .k { color: var(--ink-3); font-size: 10.5px; margin-bottom: 2px; }
+  .detail-item .v { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--ink); }
+  .reasoning {
+    background: #fff;
+    padding: 12px;
+    border-left: 3px solid var(--accent);
+    font-size: 12.5px;
+    line-height: 1.7;
+  }
+  .reasoning .step { margin-bottom: 6px; }
+  .reasoning .step b { color: var(--accent); }
+  .reasoning .step .arrow { color: var(--ink-3); margin: 0 6px; }
+  .reasoning .step.da-hint {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: #fff9e6;
+    border-left: 3px solid var(--warn);
+    border-radius: 2px;
+  }
+  .warn-box {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #fdf1f1;
+    border-left: 3px solid var(--seal);
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+  .warn-box b { color: var(--seal); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <!-- 메인 마스코트: 딸기를 안은 방울이 -->
+    <img class="mascot" src="data:image/png;base64,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" alt="딸기를 안은 방울이 마스코트">
+    <div class="title-wrap">
+      <h1>상수도 사용량 인정조정 판정 도구</h1>
+      <div class="sub">논산시 상수도 급수 조례 시행규칙 제26조 기반 자동판정</div>
+    </div>
+    <div class="header-meta">
+      <div>
+        <div>처리 건수</div>
+        <b id="header-count">0건</b>
+      </div>
+      <div>
+        <div>최종 처리</div>
+        <b id="header-time">—</b>
+      </div>
+      <button class="btn ghost" style="color:#faf8f3;border-color:rgba(250,248,243,.3);" onclick="showHelp()">도움말</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- 1단계: 데이터 입력 -->
+  <div class="section">
+    <div class="section-head">
+      <span class="num">1</span>
+      <span>데이터 입력</span>
+      <span class="desc">ERP 회신자료를 엑셀 파일 또는 클립보드로 불러옵니다</span>
+    </div>
+    <div class="section-body">
+      <div class="input-tabs">
+        <button class="tab active" onclick="switchTab('file')">엑셀 파일</button>
+        <button class="tab" onclick="switchTab('paste')">붙여넣기</button>
+      </div>
+
+      <div id="tab-file" class="tab-content">
+        <div class="upload-zone" id="dropzone" onclick="document.getElementById('file-input').click()">
+          <div class="icon">📄</div>
+          <p><b>ERP 회신 엑셀 파일</b>을 끌어다 놓거나 클릭해서 선택하세요</p>
+          <div class="hint">.xlsx, .xls 지원 · 시행규칙 양식 그대로 인식</div>
+        </div>
+        <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none" onchange="handleFile(event)">
+        <div class="sample-row">
+          <span class="sample-hint">파일이 없어도 체험할 수 있어요</span>
+          <button class="btn sample-btn" onclick="loadSample()">
+            ▶ 시뮬레이션 (5월분 샘플 데이터)
+          </button>
+        </div>
+      </div>
+
+      <div id="tab-paste" class="tab-content" style="display:none">
+        <textarea class="paste-area" id="paste-area" placeholder="ERP에서 표를 복사한 후 여기에 붙여넣기 (탭 또는 쉼표 구분)&#10;&#10;예시:&#10;순번&#9;대표업종&#9;25-04&#9;25-05&#9;...&#9;26-04&#9;25-04구분&#9;...&#9;26-04구분&#9;전월지침&#9;당월지침&#9;계량기&#9;사유&#10;1&#9;가정용&#9;40&#9;39&#9;...&#9;33&#9;정상&#9;...&#9;미검침&#9;1719&#9;&#9;촬상식&#9;못불러옴"></textarea>
+        <div class="input-actions">
+          <button class="btn" onclick="parsePaste()">붙여넣은 자료 분석</button>
+          <button class="btn ghost" onclick="document.getElementById('paste-area').value=''">지우기</button>
+          <span class="sample">탭 구분(엑셀 복사) 또는 쉼표 구분(CSV) 모두 지원</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2단계: 요약 (결과 있을 때만) -->
+  <div class="section" id="summary-section" style="display:none">
+    <div class="section-head">
+      <span class="num">2</span>
+      <span>판정 요약</span>
+      <span class="desc">시행규칙 제26조 가/나/다 자동 분류 결과</span>
+    </div>
+    <div class="section-body" style="padding:0">
+      <div class="summary-grid" id="summary-grid"></div>
+    </div>
+  </div>
+
+  <!-- 3단계: 검토 -->
+  <div class="section" id="review-section" style="display:none">
+    <div class="section-head">
+      <span class="num">3</span>
+      <span>건별 검토 · 수정 · 출력</span>
+      <span class="desc">필요시 판정을 수동으로 조정한 후 엑셀로 내보내기</span>
+    </div>
+
+    <div class="toolbar">
+      <input type="text" id="search" placeholder="🔍 순번/업종/사유 검색..." oninput="renderTable()">
+      <div class="filter-chips" id="filter-chips"></div>
+      <div class="right">
+        <button class="btn secondary" onclick="exportExcel()">📥 엑셀 다운로드</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table id="result-table">
+        <thead>
+          <tr>
+            <th>순번</th>
+            <th>업종</th>
+            <th>전년<br>동월</th>
+            <th>최근 4개월</th>
+            <th>당월</th>
+            <th>당월<br>구분</th>
+            <th>4개월<br>합계</th>
+            <th>전월량<br>(가)</th>
+            <th>평균<br>(나)</th>
+            <th>전년동월<br>(다)</th>
+            <th>메인지침<br>전→당</th>
+            <th>계량기</th>
+            <th>사유</th>
+            <th>자동<br>판정</th>
+            <th>최종<br>판정</th>
+            <th>부과량</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="result-body"></tbody>
+      </table>
+    </div>
+
+    <div id="empty-state" class="empty" style="display:none">
+      <div class="big">조건에 맞는 자료가 없습니다</div>
+      <div>검색어나 필터를 조정해보세요</div>
+    </div>
+  </div>
+
+  <!-- 빈 상태 -->
+  <div class="section" id="initial-empty">
+    <div class="empty">
+      <div class="big">위 1단계에서 데이터를 불러오면 판정 결과가 표시됩니다</div>
+      <div style="margin-top:6px">검침원이 작성한 종이양식 → 고객번호 정리 → ERP 회신 엑셀을 받으신 그대로 올려주세요</div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <img src="data:image/png;base64,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" alt="방울이" style="width:40px;height:40px;margin-bottom:8px;opacity:0.9;">
+  <div class="law">『논산시 상수도 급수 조례 시행규칙』 제26조 (고장 계량기 등에 대한 사용수량의 인정)</div>
+  <div>본 도구의 판정 결과는 참고용이며, 최종 인정조정은 담당자 검토 후 결정합니다.</div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════
+// 상태
+// ═══════════════════════════════════════════
+let rows = [];          // 모든 처리된 데이터
+let activeFilter = 'all';
+
+// 컬럼 정의: 13개월 키
+let MONTHS = ['25-04','25-05','25-06','25-07','25-08','25-09','25-10','25-11','25-12','26-01','26-02','26-03','26-04'];
+let COL_OFFSET = 0;      // 양식에 '비고' 컬럼(C열)이 있으면 1로 자동 전환
+let PERIOD_TEXT = '';    // 파일에서 읽은 검침기간 문구
+
+// ═══════════════════════════════════════════
+// 내장 샘플 데이터 (2026년 5월분 테스트용, 개인정보 없음)
+// QR 접속 시 파일 없이 바로 시뮬레이션 체험 가능
+// ═══════════════════════════════════════════
+const SAMPLE_DATA = [["사용량 인정 조정내역",null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[],["ㅇ 검침기간 : 2026.4.26. ~ 2026.5.25.(2026.5. 수납분)",null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[],["□ 일반계량기(기계식, 촬상식, 전자식)",null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],["순번","대표업종","비고","검침년월별 검침량",null,null,null,null,null,null,null,null,null,null,null,null,"검침년월별 검침구분",null,null,null,null,null,null,null,null,null,null,null,null,"정상\n4개월\n합계","정상전월\n사용량\n(가)","정상검침\n4개월 평균\n(나)","전년동월\n사용량\n(다)","미조정판단","최초 산정 근거","다 적용 검토","산정\n근거","일괄등록용","부과량","메인계량기 당월지침",null,"계량기","사유"],[null,null,null,"25-05","25-06","25-07","25-08","25-09","25-10","25-11","25-12","26-01","26-02","26-03","26-04","26-05","25-05","25-06","25-07","25-08","25-09","25-10","25-11","25-12","26-01","26-02","26-03","26-04","26-05",null,null,null,null,null,null,null,null,null,null,"26-04월","26-05월",null,null],[1,"일반용",null,697,624,701,564,768,880,800,680,621,262,435,505,876,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상",1823,505,455,697,null,null,null,null,null,null,29285,30161,"전자식","모니터지침불량"],[2,"가정용",null,14378,14365,14981,14783,13991,14961,14091,14319,14042,13211,13904,14004,14105,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상",55161,14004,13790,14378,null,null,null,null,null,null,843879,857984,"전자식","벽 전자식 깜빡거림"],[3,"가정용",null,7,6,6,6,22,35,6,6,3,22,6,12,6,"정상","정상","정상","정상","정상","정상","교체","정상","정상","정상","정상","정상","정상",43,12,10,7,null,null,null,null,null,null,55,61,"촬상식","못불러옴"],[4,"일반용",null,30,29,30,33,32,32,28,28,31,30,30,22,30,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","정상","정상",113,22,28,30,null,null,null,null,null,null,1359,1389,"촬상식","못불러옴"],[5,"가정용",null,10,15,12,10,9,14,9,8,15,7,15,15,11,"정상","정상","정상","정상","정상","정상","교체","정상","정상","정상","정상","정상","정상",52,15,13,10,null,null,null,null,null,null,66,77,"촬상식","접속안됨(접촉불량)"],[6,"가정용",null,0,0,0,0,0,1,0,0,0,0,1,1,2,"정상","정상","정상","정상","정상","정상","정상","교체","정상","정상","정상","정상","정상",2,1,0,0,null,null,null,null,null,null,3,5,"촬상식","카메라위치안맞음"],[7,"가정용",null,36,38,25,25,21,9,16,13,10,12,16,19,42,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상",57,19,14,36,null,null,null,null,null,null,963,1005,"촬상식","못불러옴"],[8,"가정용",null,19,18,16,18,29,19,16,16,22,21,17,14,19,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상",74,14,18,19,null,null,null,null,null,null,1151,1170,"촬상식","못불러옴"],[9,"일반용",null,40,38,35,36,35,33,31,45,32,28,29,37,28,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상",126,37,31,40,null,null,null,null,null,null,1923,1951,"촬상식","못불러옴"],[10,"가정용",null,11,10,17,15,13,11,10,11,10,19,11,9,16,"정상","정상","정상","정상","정상","정상","교체","정상","정상","정상","정상","정상","정상",49,9,12,11,null,null,null,null,null,null,70,86,"촬상식","못불러옴"],[],["□ 디지털, 스마트(디지털+수신기)계량기",null,null,"",null,"","",null,null,"",null,null,null,null,null,null,"",null,"","",null,null,"",null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],["순번","대표업종","비고","검침년월별 검침량",null,null,null,null,null,null,null,null,null,null,null,null,"검침년월별 검침구분",null,null,null,null,null,null,null,null,null,null,null,null,"정상\n4개월\n합계","정상전월\n사용량\n(가)","정상검침\n4개월 평균\n(나)","전년동월\n사용량\n(다)","미조정판단","최초 산정 근거","다 적용 검토","산정\n근거","일괄등록용","부과량","메인계량기 당월지침",null,"계량기","사유"],[null,null,null,"25-05","25-06","25-07","25-08","25-09","25-10","25-11","25-12","26-01","26-02","26-03","26-04","26-05","25-05","25-06","25-07","25-08","25-09","25-10","25-11","25-12","26-01","26-02","26-03","26-04","26-05",null,null,null,null,null,null,null,null,null,null,"26-04월","26-05월",null,null],[1,"가정용",null,18,22,21,27,24,18,21,17,11,9,9,13,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",42,13,10,18,null,null,null,null,null,null,824,null,"스마트","지침불규칙"],[2,"가정용",null,5,7,5,6,4,4,3,3,4,4,2,2,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",13,2,3,5,null,null,null,null,null,null,209,null,"스마트","액정나감"],[3,"가정용",null,1,8,1,1,1,0,0,1,0,21,0,3,null,"정상","정상","정상","정상","인정","정상","정상","정상","정상","정상","정상","정상","미검침",24,3,6,1,null,null,null,null,null,null,25,null,"스마트","지침불규칙"],[4,"가정용",null,21,17,17,20,20,22,25,20,15,17,14,15,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",61,15,15,21,null,null,null,null,null,null,883,null,"스마트","지침불규칙"],[5,"가정용",null,44,0,0,0,0,0,13,2,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,44,null,null,null,null,null,null,129,null,"디지털","습기차서 숫자식별안됨"],[6,"가정용",null,12,11,11,10,9,9,7,8,11,13,14,14,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",46,14,11,12,null,null,null,null,null,null,369,null,"디지털","액정나감"],[7,"가정용",null,22,24,24,20,33,22,10,2,2,1,2,1,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",6,1,1,22,null,null,null,null,null,null,529,null,"디지털",null],[8,"가정용",null,22,21,19,21,22,21,11,19,27,29,12,1,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",69,1,17,22,null,null,null,null,null,null,589,null,"스마트","액정나감"],[9,"가정용",null,10,12,8,11,15,24,1,17,6,5,11,10,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",32,10,8,10,null,null,null,null,null,null,569,null,"스마트","액정나감"],[10,"가정용",null,30,33,40,41,44,44,20,27,26,26,29,24,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","인정","인정","미검침",108,29,27,30,null,null,null,null,null,null,1708,null,"디지털","액정나감"],[11,"가정용",null,2,2,2,0,2,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,2,null,null,null,null,null,null,57,null,"디지털","액정나감"],[12,"가정용",null,4,4,4,4,4,4,3,3,3,3,4,4,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",13,4,3,4,null,null,null,null,null,null,227,null,"디지털","액정나감"],[13,"가정용",null,15,8,17,1,13,13,8,8,8,12,8,8,null,"교체","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",36,8,9,15,null,null,null,null,null,null,117,null,"디지털","액정나감"],[14,"가정용",null,5,3,7,10,7,5,4,3,8,11,4,4,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",26,4,6,5,null,null,null,null,null,null,270,null,"디지털","액정나감"],[15,"일반용",null,29,31,22,37,27,24,25,33,26,26,25,22,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",99,22,24,29,null,null,null,null,null,null,2087,null,"디지털","액정나감"],[16,"가정용",null,104,115,100,113,107,116,112,117,114,142,108,108,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",481,108,120,104,null,null,null,null,null,null,5410,null,"디지털","액정나감"],[17,"일반용",null,68,91,84,73,81,73,63,61,62,58,59,59,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",240,59,60,68,null,null,null,null,null,null,3383,null,"디지털","액정나감"],[18,"가정용",null,16,23,16,21,20,16,13,18,15,15,14,14,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",62,14,15,16,null,null,null,null,null,null,454,null,"디지털","액정나감"],[19,"가정용",null,18,22,20,24,19,19,10,16,15,17,15,15,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",63,15,15,18,null,null,null,null,null,null,1039,null,"디지털","액정나감"],[20,"가정용",null,0,0,0,0,0,0,0,0,1,0,1,12,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",14,12,3,0,null,null,null,null,null,null,202,null,"디지털","지침수사라짐"],[21,"가정용",null,25,0,0,0,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,25,null,null,null,null,null,null,89,null,"디지털","액정나감"],[22,"가정용",null,19,47,44,50,44,45,42,38,38,47,32,32,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",155,32,38,19,null,null,null,null,null,null,1318,null,"디지털","액정나감"],[23,"가정용",null,11,10,76,82,75,8,4,2,3,2,5,56,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",66,56,16,11,null,null,null,null,null,null,401,null,"디지털","지침리셋"],[24,"가정용",null,0,0,0,0,0,0,0,0,1,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",1,0,0,0,null,null,null,null,null,null,1,null,"디지털","액정아웃"],[25,"가정용",null,0,0,0,0,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","인정","인정","인정","정상","정상","정상","정상","미검침",0,0,0,0,null,null,null,null,null,null,0,null,"디지털","액정아웃"],[26,"일반용",null,5,5,5,8,7,6,5,4,5,5,6,6,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",20,6,5,5,null,null,null,null,null,null,227,null,"디지털","액정아웃"],[27,"가정용",null,7,11,5,5,4,8,4,6,4,4,5,4,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",17,4,4,7,null,null,null,null,null,null,871,null,"디지털","액정아웃"],[28,"가정용",null,6,5,5,3,1,6,5,6,6,5,6,6,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",23,6,5,6,null,null,null,null,null,null,254,null,"디지털","액정아웃"],[29,"가정용",null,0,0,0,0,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,0,null,null,null,null,null,null,5,null,"디지털","액정아웃"],[30,"가정용",null,4,29,43,6,4,4,4,1,4,3,3,3,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",11,3,2,4,null,null,null,null,null,null,163,null,"디지털","액정아웃"],[31,"가정용",null,7,12,15,12,13,16,15,15,14,18,18,17,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",67,17,16,7,null,null,null,null,null,null,467,null,"디지털","액정아웃"],[32,"가정용",null,0,2,7,4,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,0,null,null,null,null,null,null,38,null,"디지털","지침수확인불가"],[33,"가정용",null,11,11,12,13,11,14,10,10,4,10,15,15,null,"정상","정상","정상","정상","정상","정상","정상","인정","정상","정상","정상","인정","미검침",39,15,9,11,null,null,null,null,null,null,487,null,"디지털","액정아웃"],[34,"가정용",null,4,4,4,4,3,5,4,3,2,1,4,1,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",8,1,2,4,null,null,null,null,null,null,140,null,"디지털","액정아웃"],[35,"가정용",null,2,6,4,9,3,1,1,1,2,3,2,2,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",9,2,2,2,null,null,null,null,null,null,253,null,"스마트","액정나감"],[36,"가정용",null,19,18,7,4,4,16,3,0,0,5,4,2,null,"정상","정상","정상","정상","정상","정상","정상","정상","인정","인정","인정","인정","미검침",9,4,2,19,null,null,null,null,null,null,294,null,"스마트","액정나감"],[37,"가정용",null,14,19,21,18,17,19,13,12,14,11,13,15,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",53,15,13,14,null,null,null,null,null,null,893,null,"스마트","액정나감"],[38,"가정용",null,4,0,0,0,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,4,null,null,null,null,null,null,270,null,"스마트","액정나감"],[39,"가정용",null,8,9,10,9,7,13,8,7,10,9,9,16,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",44,16,11,8,null,null,null,null,null,null,762,null,"스마트","액정나감"],[40,"가정용",null,2,3,5,5,2,2,3,0,0,0,1,1,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",2,1,0,2,null,null,null,null,null,null,97,null,"스마트","액정나감"],[41,"가정용",null,16,0,0,12,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,16,null,null,null,null,null,null,128,null,"스마트","액정나감"],[42,"가정용",null,4,5,4,5,4,5,3,3,0,0,0,1,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",1,1,0,4,null,null,null,null,null,null,224,null,"스마트","액정나감"],[43,"가정용",null,25,28,31,28,29,27,32,24,22,27,21,17,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",87,17,21,25,null,null,null,null,null,null,1409,null,"스마트","액정나감"],[44,"가정용",null,14,19,16,22,19,17,18,15,12,11,9,12,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",44,12,11,14,null,null,null,null,null,null,205,null,"스마트","액정나감"],[45,"가정용",null,3,3,4,3,1,2,1,0,6,1,1,1,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",8,1,2,3,null,null,null,null,null,null,193,null,"스마트","지침부동"],[46,"가정용",null,0,0,0,0,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","인정","정상","정상","정상","인정","미검침",0,0,0,0,null,null,null,null,null,null,1,null,"스마트","액정나감"],[47,"가정용",null,0,0,1,0,0,2,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","인정","정상","정상","정상","인정","미검침",0,0,0,0,null,null,null,null,null,null,73,null,"스마트","액정나감"],[48,"가정용",null,0,0,0,0,0,0,0,1,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,0,null,null,null,null,null,null,8,null,"스마트","액정나감"],[49,"일반용",null,0,1,1,0,1,3,0,1,0,1,0,1,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",2,1,0,0,null,null,null,null,null,null,37,null,"스마트","액정나감"],[50,"가정용",null,5,9,16,10,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","인정","인정","정상","정상","정상","인정","미검침",0,0,0,5,null,null,null,null,null,null,381,null,"스마트","액정나감"],[51,"가정용",null,9,9,15,15,12,14,10,10,8,10,6,6,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",34,6,8,9,null,null,null,null,null,null,660,null,"스마트","액정나감"],[52,"가정용",null,9,10,9,8,9,10,7,13,6,8,5,5,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",32,5,8,9,null,null,null,null,null,null,538,null,"스마트","액정아웃"],[53,"가정용",null,3,5,4,6,5,7,2,1,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",1,0,0,3,null,null,null,null,null,null,131,null,"스마트","액정아웃"],[54,"가정용",null,8,9,3,9,3,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","인정","인정","인정","인정","미검침",0,0,0,8,null,null,null,null,null,null,103,null,"스마트","액정아웃"],[55,"가정용",null,28,32,30,36,29,34,30,29,35,42,38,35,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",150,35,37,28,null,null,null,null,null,null,1935,null,"스마트","지침리셋"],[56,"가정용",null,32,33,19,3,3,21,26,28,31,28,24,24,null,"정상","정상","정상","정상","인정","정상","정상","정상","정상","정상","정상","정상","미검침",107,24,26,32,null,null,null,null,null,null,815,null,"스마트","지침부동"],[57,"가정용",null,14,9,18,9,13,11,12,11,11,11,14,7,12,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",43,7,10,14,null,null,null,null,null,null,566,78,"스마트","숫자사라짐(백의자리)"],[58,"가정용",null,11,12,11,14,11,15,13,13,12,9,12,9,11,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",42,9,10,11,null,null,null,null,null,null,523,34,"스마트","숫자사라짐(백의자리)"],[59,"가정용",null,1,0,1,0,0,2,0,1,4,7,0,0,1,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",11,0,2,1,null,null,null,null,null,null,581,82,"스마트","숫자사라짐(백의자리)"],[60,"가정용",null,27,28,29,32,38,27,10,17,16,19,15,17,18,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",67,17,16,27,null,null,null,null,null,null,393,11,"스마트","숫자사라짐(백의자리)"],[61,"가정용",null,2,4,3,1,1,1,0,2,0,0,2,1,2,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",3,1,0,2,null,null,null,null,null,null,179,81,"스마트","숫자사라짐(백의자리)"],[62,"일반용",null,0,1,0,1,0,1,0,0,0,1,0,0,0,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",1,0,0,0,null,null,null,null,null,null,53,53,"디지털","액정나감"],[63,"가정용",null,1,1,0,1,0,1,0,0,0,0,0,0,0,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",0,0,0,1,null,null,null,null,null,null,45,45,"디지털","액정나감"],[64,"가정용",null,6,4,4,17,23,25,5,5,4,6,0,0,9,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",10,0,2,6,null,null,null,null,null,null,439,48,"디지털","숫자사라짐(백의자리)"],[65,"가정용",null,21,23,26,29,27,23,22,19,23,18,17,19,24,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",77,19,19,21,null,null,null,null,null,null,996,24,"디지털","숫자사라짐(백의자리)"],[66,"가정용",null,14,19,20,24,18,19,15,12,11,12,14,11,16,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",48,11,12,14,null,null,null,null,null,null,755,71,"디지털","숫자사라짐(백의자리)"],[67,"가정용",null,20,19,17,17,18,19,14,14,12,13,11,10,14,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",46,10,11,20,null,null,null,null,null,null,684,98,"디지털","숫자사라짐(백의자리)"],[68,"일반용",null,16,21,23,25,19,20,20,21,21,12,11,16,17,"정상","정상","정상","정상","정상","정상","인정","인정","정상","정상","정상","정상","인정",60,16,15,16,null,null,null,null,null,null,101,18,"디지털","숫자사라짐(백의자리)"],[69,"일반용",null,4,11,8,15,5,10,9,7,6,6,7,11,5,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",30,11,7,4,null,null,null,null,null,null,232,5,"디지털","지침리셋"],[70,"가정용",null,52,51,58,68,57,63,50,53,83,77,91,86,83,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",337,86,84,52,null,null,null,null,null,null,1728,811,"디지털","숫자사라짐(천의자리)"],[71,"일반용",null,0,5,12,82,129,0,0,0,0,0,0,11,1,"정상","정상","인정","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",11,11,2,0,null,null,null,null,null,null,234,35,"디지털","숫자사라짐(백의자리)"],[72,"가정용",null,3,3,3,4,2,6,3,7,3,3,3,4,3,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",13,4,3,3,null,null,null,null,null,null,113,16,"디지털","숫자사라짐(백의자리)"],[73,"일반용",null,12,19,17,24,8,14,13,16,14,10,10,8,16,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",42,8,10,12,null,null,null,null,null,null,662,78,"디지털","숫자사라짐(백의자리)"],[74,"가정용",null,11,14,15,14,12,11,9,11,8,8,9,9,12,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",34,9,8,11,null,null,null,null,null,null,498,10,"디지털","숫자사라짐(백의자리)"],[75,"가정용",null,10,15,42,22,5,4,1,5,0,0,1,1,12,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",2,1,0,10,null,null,null,null,null,null,322,34,"디지털","숫자사라짐(백의자리)"],[76,"가정용",null,14,16,15,20,14,16,16,11,13,17,11,10,13,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",51,10,12,14,null,null,null,null,null,null,331,44,"디지털","숫자사라짐(백의자리)"],[77,"가정용",null,44,34,31,40,31,34,39,29,24,34,42,43,38,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",143,43,35,44,null,null,null,null,null,null,643,81,"디지털","숫자사라짐(백의자리)"],[78,"가정용",null,13,13,18,16,13,12,11,13,11,10,13,10,15,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",44,10,11,13,null,null,null,null,null,null,166,81,"디지털","숫자사라짐(백의자리)"],[79,"가정용",null,12,14,12,15,14,12,10,9,7,8,8,9,10,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",32,9,8,12,null,null,null,null,null,null,262,72,"디지털","숫자사라짐(백의자리)"],[80,"가정용",null,1,0,1,16,23,10,6,3,0,0,0,0,0,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","인정",3,0,0,1,null,null,null,null,null,null,94,94,"스마트","액정아웃"],[81,"일반용",null,0,0,0,0,0,0,0,0,0,0,7,0,0,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",7,0,1,0,null,null,null,null,null,null,370,70,"디지털","숫자사라짐(백의자리)"],[82,"가정용",null,0,1,0,1,0,1,7,1,0,0,0,1,0,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",1,1,0,0,null,null,null,null,null,null,19,19,"디지털","액정나감"]];
+
+function loadSample() {
+  parseExcelData(SAMPLE_DATA);
+  // 결과 영역으로 부드럽게 스크롤 (모바일 체험 흐름)
+  setTimeout(() => {
+    const el = document.getElementById('summary-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 300);
+}
+
+// ═══════════════════════════════════════════
+// 탭 전환
+// ═══════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-file').style.display = name === 'file' ? 'block' : 'none';
+  document.getElementById('tab-paste').style.display = name === 'paste' ? 'block' : 'none';
+}
+
+// ═══════════════════════════════════════════
+// 파일 업로드
+// ═══════════════════════════════════════════
+const dropzone = document.getElementById('dropzone');
+['dragenter', 'dragover'].forEach(e => dropzone.addEventListener(e, ev => { ev.preventDefault(); dropzone.classList.add('drag'); }));
+['dragleave', 'drop'].forEach(e => dropzone.addEventListener(e, ev => { ev.preventDefault(); dropzone.classList.remove('drag'); }));
+dropzone.addEventListener('drop', ev => {
+  if (ev.dataTransfer.files.length) {
+    document.getElementById('file-input').files = ev.dataTransfer.files;
+    handleFile({ target: { files: ev.dataTransfer.files } });
+  }
+});
+
+function handleFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const sheet = wb.Sheets['인정조정내역'] || wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+      parseExcelData(data);
+    } catch (err) {
+      toast('파일을 읽지 못했습니다: ' + err.message, 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseExcelData(data) {
+  // 시행규칙 양식 구조:
+  //   - 1행: 제목 / 3행: 검침기간 안내
+  //   - 섹션 1: "□ 일반계량기(기계식, 촬상식, 전자식)" 헤더 → 표 헤더 2줄 → 데이터
+  //   - 섹션 2: "□ 디지털, 스마트(디지털+수신기)계량기" 헤더 → 표 헤더 2줄 → 데이터
+  // 섹션 시작점을 자동 검색해서 두 섹션 모두 파싱
+  const parsed = [];
+  let currentSection = null; // '일반계량기' 또는 '디지털·스마트'
+  let inDataMode = false;
+  let headerRowsToSkip = 0;
+  let globalSeq = 0;
+
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i] || [];
+    const firstCell = toStr(row[0]);
+
+    // 검침기간 문구 캡처
+    if (firstCell.includes('검침기간')) {
+      PERIOD_TEXT = firstCell;
+      continue;
+    }
+
+    // 섹션 구분자 인식
+    if (firstCell.includes('□') || firstCell.includes('일반계량기') || firstCell.includes('디지털')) {
+      if (firstCell.includes('일반계량기')) currentSection = '일반계량기';
+      else if (firstCell.includes('디지털') || firstCell.includes('스마트')) currentSection = '디지털·스마트';
+      inDataMode = false;
+      headerRowsToSkip = 0;
+      continue;
+    }
+
+    // 섹션 안에서 "순번" 헤더를 만나면 그 다음부터 데이터
+    if (currentSection && firstCell === '순번') {
+      // 컬럼 오프셋 자동 감지: C열이 '비고'면 전체가 한 칸 밀린 신양식
+      COL_OFFSET = (toStr(row[2]) === '비고') ? 1 : 0;
+      inDataMode = false;
+      headerRowsToSkip = 1; // 다음 행(서브헤더)도 스킵
+      continue;
+    }
+    if (currentSection && headerRowsToSkip > 0) {
+      headerRowsToSkip--;
+      // 서브헤더에서 월 라벨 자동 추출 (예: 25-05 ~ 26-05)
+      const monthLabels = [];
+      for (let m = 0; m < 13; m++) {
+        const lbl = toStr(row[2 + COL_OFFSET + m]);
+        if (/^\d{2}-\d{2}$/.test(lbl)) monthLabels.push(lbl);
+      }
+      if (monthLabels.length === 13) MONTHS = monthLabels;
+      if (headerRowsToSkip === 0) inDataMode = true;
+      continue;
+    }
+
+    // 데이터 행
+    if (inDataMode && firstCell !== '') {
+      const r = parseRowFromArray(row);
+      if (r) {
+        r.section = currentSection;
+        r.origSeq = r.seq;             // 섹션 내 순번 보존
+        globalSeq++;
+        r.seq = globalSeq;             // 전체 통합 순번 부여
+        parsed.push(r);
+      }
+    }
+  }
+
+  if (parsed.length === 0) {
+    toast('데이터 행을 찾지 못했습니다. 양식이 시행규칙 표준 양식인지 확인해주세요.', 'error');
+    return;
+  }
+  rows = parsed.map(computeJudgement);
+  showResults();
+  toast(`${rows.length}건을 분석했습니다. (일반 ${parsed.filter(r=>r.section==='일반계량기').length} / 디지털·스마트 ${parsed.filter(r=>r.section==='디지털·스마트').length})`, 'success');
+}
+
+// 시행규칙 양식의 컬럼 인덱스 (0-based)
+// A=0 순번, B=1 업종, C-O=2-14 검침량 13개월, P-AB=15-27 검침구분 13개월
+// AM=38 전월지침, AN=39 당월지침, AO=40 계량기, AP=41 사유
+function parseRowFromArray(row) {
+  const seq = row[0];
+  const job = row[1];
+  if (seq == null || seq === '') return null;
+  const o = COL_OFFSET;  // '비고' 컬럼 있는 신양식이면 1
+  const usage = {}, status = {};
+  MONTHS.forEach((m, idx) => {
+    usage[m] = toNum(row[2 + o + idx]);
+    status[m] = toStr(row[15 + o + idx]);
+  });
+  return {
+    seq: seq,
+    job: toStr(job) || '',
+    usage,
+    status,
+    mainPrev: toNum(row[38 + o]),
+    mainCurr: toNum(row[39 + o]),
+    meter: toStr(row[40 + o]) || '',
+    reason: toStr(row[41 + o]) || '',
+  };
+}
+
+function toNum(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  return isNaN(n) ? null : n;
+}
+function toStr(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).trim();
+}
+
+// ═══════════════════════════════════════════
+// 붙여넣기 파싱 (탭/쉼표 구분)
+// ═══════════════════════════════════════════
+function parsePaste() {
+  const text = document.getElementById('paste-area').value.trim();
+  if (!text) { toast('붙여넣은 자료가 없습니다.', 'error'); return; }
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length === 0) { toast('읽을 수 있는 행이 없습니다.', 'error'); return; }
+  // 구분자 자동 추정
+  const delim = lines[0].includes('\t') ? '\t' : ',';
+  const data = lines.map(l => l.split(delim).map(c => c.trim()));
+  // 헤더가 있을 가능성 — 첫 셀이 "순번" 또는 숫자가 아니면 헤더로 간주
+  let start = 0;
+  if (data[0][0] === '순번' || isNaN(Number(data[0][0]))) start = 1;
+  const parsed = [];
+  for (let i = start; i < data.length; i++) {
+    const row = data[i];
+    if (row.length < 15) continue; // 최소 컬럼
+    const r = parseRowFromArray(row);
+    if (r) parsed.push(r);
+  }
+  if (parsed.length === 0) {
+    toast('데이터 행을 찾지 못했습니다. 양식 순서를 확인해주세요.', 'error');
+    return;
+  }
+  rows = parsed.map(computeJudgement);
+  showResults();
+  toast(`${rows.length}건을 분석했습니다.`, 'success');
+}
+
+// ═══════════════════════════════════════════
+// 시행규칙 제26조 자동 판정 로직 (v2)
+//   - 가/나/미조정은 자동 판정
+//   - 다는 자동 적용하지 않음 (담당자 판단 영역)
+//   - 1.5배 조건 충족 행은 "다 검토 후보"로 알람만 띄움
+//   - 인정계량 누적 3회 이상이면 시행규칙 제26조 5항 경고
+// ═══════════════════════════════════════════
+function computeJudgement(r) {
+  // 13개월 중 직전 4개월 = 25-12, 26-01, 26-02, 26-03 (당월 26-04 제외)
+  // 단, 26-03이 "인정"이면 한 칸 당겨 25-11, 25-12, 26-01, 26-02
+  // 월 인덱스: MONTHS[0]=전년동월(t-12), MONTHS[11]=전월(t-1), MONTHS[12]=당월(t-0)
+  const currStatus = r.status[MONTHS[12]];
+  const prevStatus = r.status[MONTHS[11]];
+
+  let fourMonthKeys;
+  if (prevStatus === '인정') {
+    fourMonthKeys = [MONTHS[7], MONTHS[8], MONTHS[9], MONTHS[10]];
+  } else {
+    fourMonthKeys = [MONTHS[8], MONTHS[9], MONTHS[10], MONTHS[11]];
+  }
+  const fourMonthSum = fourMonthKeys.reduce((a, k) => a + (r.usage[k] || 0), 0);
+  const fourMonthAvg = Math.floor(fourMonthSum / 4);
+
+  const prevMonthKey = prevStatus === '인정' ? MONTHS[10] : MONTHS[11];
+  const prevMonthUsage = r.usage[prevMonthKey] || 0;
+
+  const lastYearSame = r.usage[MONTHS[0]] || 0;
+  const currUsage = r.usage[MONTHS[12]] || 0;
+
+  // AG: 미조정판단 - 메인계량기 검증
+  let isUnadjusted;
+  if (!r.mainCurr || !r.mainPrev) {
+    isUnadjusted = false; // AN 없으면 무조건 조정대상
+  } else {
+    isUnadjusted = (r.mainPrev + currUsage === r.mainCurr);
+  }
+
+  // 자동 판정: 가/나/미조정만 (다는 자동 적용 X)
+  let autoVerdict;
+  if (isUnadjusted) {
+    autoVerdict = '미조정';
+  } else if (currStatus === '정상') {
+    autoVerdict = '가';
+  } else {
+    autoVerdict = '나';
+  }
+
+  // 다 검토 후보 식별 (자동 적용 X, 알람만)
+  // 조정대상 + 당월구분 ≠ 정상 + 전년동월 > 0 + 4개월평균 ≥ 전년동월 × 1.5
+  const daReviewCandidate = (!isUnadjusted && currStatus !== '정상' &&
+                              lastYearSame > 0 && fourMonthAvg >= lastYearSame * 1.5);
+
+  // 인정계량 누적 카운트 (당월 인정 예정 포함)
+  // 13개월 중 검침구분이 '인정'인 횟수 + 이번 조정이 '미조정' 아니면 +1
+  const recognizedCount = MONTHS.reduce((cnt, m) => cnt + (r.status[m] === '인정' ? 1 : 0), 0);
+  const willBeRecognizedThisMonth = (autoVerdict !== '미조정');
+  const totalRecognizedIncludingThis = recognizedCount + (willBeRecognizedThisMonth ? 1 : 0);
+  const recognizedWarning = totalRecognizedIncludingThis >= 3;
+
+  return {
+    ...r,
+    fourMonthSum,
+    fourMonthAvg,
+    fourMonthKeys,
+    prevMonthUsage,
+    prevMonthKey,
+    lastYearSame,
+    currUsage,
+    isUnadjusted,
+    autoVerdict,
+    daReviewCandidate,
+    recognizedCount,
+    totalRecognizedIncludingThis,
+    recognizedWarning,
+    manualVerdict: null,        // 수동 조정 시 저장
+    expanded: false,
+  };
+}
+
+// 최종 판정 (수동 조정 우선)
+function getFinalVerdict(r) { return r.manualVerdict || r.autoVerdict; }
+function getFinalBilling(r) {
+  const v = getFinalVerdict(r);
+  if (v === '가') return r.prevMonthUsage;
+  if (v === '나') return r.fourMonthAvg;
+  if (v === '다') return r.lastYearSame;
+  return r.currUsage;
+}
+
+// ═══════════════════════════════════════════
+// 화면 렌더
+// ═══════════════════════════════════════════
+function showResults() {
+  document.getElementById('initial-empty').style.display = 'none';
+  document.getElementById('summary-section').style.display = 'block';
+  document.getElementById('review-section').style.display = 'block';
+  renderSummary();
+  renderFilters();
+  renderTable();
+  updateHeader();
+}
+
+function updateHeader() {
+  document.getElementById('header-count').textContent = rows.length + '건';
+  const now = new Date();
+  document.getElementById('header-time').textContent =
+    `${now.getMonth()+1}.${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+}
+
+function renderSummary() {
+  const counts = { 가: 0, 나: 0, 다: 0, 미조정: 0 };
+  rows.forEach(r => counts[getFinalVerdict(r)]++);
+  const totalBilling = rows.reduce((a, r) => a + getFinalBilling(r), 0);
+  const daReviewCount = rows.filter(r => r.daReviewCandidate && getFinalVerdict(r) !== '다').length;
+  const warningCount = rows.filter(r => r.recognizedWarning).length;
+
+  const grid = document.getElementById('summary-grid');
+  grid.innerHTML = `
+    <div class="summary-cell"><div class="label">전체</div><div class="value">${rows.length}</div></div>
+    <div class="summary-cell"><div class="label">가 (전월 사용량)</div><div class="value ga">${counts.가}</div></div>
+    <div class="summary-cell"><div class="label">나 (4개월 평균)</div><div class="value na">${counts.나}</div></div>
+    <div class="summary-cell"><div class="label">다 (전년 동월)</div><div class="value da">${counts.다}</div></div>
+    <div class="summary-cell"><div class="label">미조정</div><div class="value mi">${counts.미조정}</div></div>
+    <div class="summary-cell"><div class="label">총 부과량 (㎥)</div><div class="value">${totalBilling.toLocaleString()}</div></div>
+    <div class="summary-cell review"><div class="label">⚐ 다 검토 후보</div><div class="value review-v">${daReviewCount}</div></div>
+    <div class="summary-cell warn"><div class="label">⚠ 인정 3회 이상</div><div class="value warn-v">${warningCount}</div></div>
+  `;
+}
+
+function renderFilters() {
+  const counts = {
+    전체: rows.length,
+    가: 0, 나: 0, 다: 0, 미조정: 0,
+    다검토: rows.filter(r => r.daReviewCandidate && getFinalVerdict(r) !== '다').length,
+    경고: rows.filter(r => r.recognizedWarning).length,
+  };
+  rows.forEach(r => counts[getFinalVerdict(r)]++);
+  const chips = document.getElementById('filter-chips');
+  const list = [
+    { key: 'all', label: '전체', count: counts.전체 },
+    { key: '가', label: '가', count: counts.가 },
+    { key: '나', label: '나', count: counts.나 },
+    { key: '다', label: '다', count: counts.다 },
+    { key: '미조정', label: '미조정', count: counts.미조정 },
+    { key: '다검토', label: '⚐ 다 검토 후보', count: counts.다검토, cls: 'review' },
+    { key: '경고', label: '⚠ 인정 3회+', count: counts.경고, cls: 'warn' },
+  ];
+  chips.innerHTML = list.map(c => `
+    <div class="chip ${c.cls || ''} ${activeFilter === c.key ? 'active' : ''}" onclick="setFilter('${c.key}')">
+      ${c.label}<span class="count">${c.count}</span>
+    </div>
+  `).join('');
+}
+
+function setFilter(k) {
+  activeFilter = k;
+  renderFilters();
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('result-body');
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const filtered = rows.filter(r => {
+    if (activeFilter === '다검토') {
+      if (!(r.daReviewCandidate && getFinalVerdict(r) !== '다')) return false;
+    } else if (activeFilter === '경고') {
+      if (!r.recognizedWarning) return false;
+    } else if (activeFilter !== 'all' && getFinalVerdict(r) !== activeFilter) {
+      return false;
+    }
+    if (q) {
+      const blob = [r.seq, r.job, r.reason, r.meter].join(' ').toLowerCase();
+      if (!blob.includes(q)) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('empty-state').style.display = filtered.length === 0 ? 'block' : 'none';
+  document.querySelector('.table-wrap').style.display = filtered.length === 0 ? 'none' : 'block';
+
+  tbody.innerHTML = filtered.map(r => renderRow(r)).join('');
+}
+
+function renderRow(r) {
+  const finalV = getFinalVerdict(r);
+  const finalB = getFinalBilling(r);
+  const isManual = r.manualVerdict !== null;
+  const last4Keys = r.fourMonthKeys;
+  const last4Display = last4Keys.map(k => r.usage[k] ?? '—').join(' · ');
+
+  const mainPair = (r.mainPrev || r.mainCurr)
+    ? `<span style="font-family:'JetBrains Mono',monospace">${r.mainPrev ?? '—'}→${r.mainCurr ?? '—'}</span>`
+    : '<span style="color:var(--ink-3)">—</span>';
+
+  const detailHtml = r.expanded ? renderDetail(r) : '';
+
+  // 행 클래스: 다 검토 후보 / 인정 3회 경고
+  const rowClasses = [];
+  if (r.expanded) rowClasses.push('editing');
+  if (r.daReviewCandidate && finalV !== '다') rowClasses.push('da-review');
+  if (r.recognizedWarning) rowClasses.push('recognized-warn');
+
+  // 마커들
+  const markers = [];
+  if (r.daReviewCandidate && finalV !== '다') {
+    markers.push(`<span class="marker review" title="다 적용 검토 후보: 4개월평균 ${r.fourMonthAvg} ≥ 전년동월 ${r.lastYearSame} × 1.5">⚐</span>`);
+  }
+  if (r.recognizedWarning) {
+    markers.push(`<span class="marker warn" title="시행규칙 제26조 5항: 인정계량 2회 초과 (이번 포함 ${r.totalRecognizedIncludingThis}회)">⚠</span>`);
+  }
+  const markerCell = markers.join(' ') || '';
+
+  return `
+    <tr class="${rowClasses.join(' ')}" onclick="toggleDetail(${r.seq})">
+      <td class="cust-id">${r.seq}${markerCell ? '<div style="margin-top:2px">'+markerCell+'</div>' : ''}</td>
+      <td>${r.job}</td>
+      <td class="num">${r.lastYearSame || '—'}</td>
+      <td class="num" style="text-align:center">${last4Display}</td>
+      <td class="num ${(r.currUsage > r.fourMonthAvg * 2 && r.fourMonthAvg > 0) ? 'abnormal' : ''}">${r.currUsage}</td>
+      <td class="month-status s-${r.status[MONTHS[12]]}">${r.status[MONTHS[12]] || '—'}</td>
+      <td class="num">${r.fourMonthSum}</td>
+      <td class="num">${r.prevMonthUsage}</td>
+      <td class="num">${r.fourMonthAvg}</td>
+      <td class="num">${r.lastYearSame}</td>
+      <td>${mainPair}</td>
+      <td>${r.meter || '—'}${r.section ? `<div style="font-size:10px;color:var(--ink-3)">${r.section==='일반계량기'?'일반':'디지털·스마트'}</div>`:''}</td>
+      <td class="reason" title="${escapeHtml(r.reason)}">${r.reason || '—'}</td>
+      <td><span class="verdict ${r.autoVerdict}">${r.autoVerdict}</span></td>
+      <td>
+        <span class="verdict ${finalV}" style="cursor:pointer" onclick="event.stopPropagation(); cycleVerdict(${r.seq})" title="클릭해서 변경">
+          ${finalV}${isManual ? '*' : ''}
+        </span>
+      </td>
+      <td class="num"><b>${finalB}</b></td>
+      <td class="actions-col" onclick="event.stopPropagation()">
+        ${r.daReviewCandidate && finalV !== '다' ? `<button class="da-btn" onclick="setVerdict(${r.seq}, '다')" title="검토 결과 ‘다’ 적용">다 적용</button>` : ''}
+        ${finalV === '다' && r.daReviewCandidate ? `<button onclick="setVerdict(${r.seq}, '나')" title="다시 ‘나’로">나로</button>` : ''}
+        ${isManual ? `<button onclick="resetVerdict(${r.seq})" title="자동 판정으로 되돌리기">↺</button>` : ''}
+      </td>
+    </tr>
+    ${r.expanded ? `<tr><td colspan="17" style="padding:0;background:var(--paper)">${detailHtml}</td></tr>` : ''}
+  `;
+}
+
+function setVerdict(seq, verdict) {
+  const r = rows.find(x => x.seq === seq);
+  if (!r) return;
+  r.manualVerdict = verdict === r.autoVerdict ? null : verdict;
+  renderTable(); renderSummary(); renderFilters();
+}
+
+function renderDetail(r) {
+  const last4Keys = r.fourMonthKeys;
+  const prevMonthLabel = r.prevMonthKey === MONTHS[10] ? `${MONTHS[10]} (${MONTHS[11]} 인정이라 한칸 당김)` : MONTHS[11];
+
+  // 판정 추론 과정
+  let reasoning = '';
+  if (r.isUnadjusted) {
+    reasoning = `<div class="step">메인계량기 검증: <b>${r.mainPrev} + ${r.currUsage} = ${r.mainCurr}</b> ✓ 일치<span class="arrow">→</span> <b>미조정</b></div>`;
+  } else {
+    if (!r.mainCurr) {
+      reasoning += `<div class="step">메인계량기 당월지침 없음<span class="arrow">→</span> 조정대상</div>`;
+    } else {
+      reasoning += `<div class="step">메인계량기 검증: ${r.mainPrev || 0} + ${r.currUsage} ≠ ${r.mainCurr} <span class="arrow">→</span> 조정대상</div>`;
+    }
+    if (r.status[MONTHS[12]] === '정상') {
+      reasoning += `<div class="step">당월 검침 정상 <span class="arrow">→</span> <b>가</b> 자동 판정 (전월 사용량 적용)</div>`;
+    } else {
+      reasoning += `<div class="step">당월 검침 비정상(${r.status[MONTHS[12]]}) <span class="arrow">→</span> <b>나</b> 자동 판정 (4개월 평균 ${r.fourMonthAvg}㎥ 적용)</div>`;
+    }
+    if (r.daReviewCandidate) {
+      reasoning += `<div class="step da-hint">⚐ <b style="color:var(--warn)">다 적용 검토 후보</b>: 4개월평균 ${r.fourMonthAvg}㎥ ≥ 전년동월 ${r.lastYearSame}㎥ × 1.5 = ${(r.lastYearSame*1.5).toFixed(1)}㎥ <br><span style="color:var(--ink-3);font-size:11.5px;margin-left:18px">→ 계절요인·생활패턴 변화 등을 종합 검토 후 ‘다 적용’ 버튼으로 변경하세요. 단순 1.5배 기준만으로 자동 적용하지 않습니다.</span></div>`;
+    }
+  }
+
+  // 인정 횟수 경고
+  let warnBox = '';
+  if (r.recognizedWarning) {
+    warnBox = `
+      <div class="warn-box">
+        <b>⚠ 인정계량 누적 ${r.totalRecognizedIncludingThis}회 (이번 인정 포함)</b><br>
+        시행규칙 제26조 5항: 인정계량은 2회를 초과할 수 없습니다. 계량기 교체 또는 별도 확인이 필요합니다.<br>
+        <span style="color:var(--ink-3);font-size:11.5px">최근 13개월 중 ‘인정’ 검침구분: ${r.recognizedCount}회</span>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="detail-panel">
+      <h5>판정 산출 근거 — 순번 ${r.seq}</h5>
+      <div class="detail-grid">
+        <div class="detail-item"><div class="k">직전 4개월 (${last4Keys.join(', ')})</div><div class="v">합계 ${r.fourMonthSum}㎥ / 평균 ${r.fourMonthAvg}㎥</div></div>
+        <div class="detail-item"><div class="k">전월 ${prevMonthLabel}</div><div class="v">${r.prevMonthUsage}㎥</div></div>
+        <div class="detail-item"><div class="k">전년동월 (${MONTHS[0]})</div><div class="v">${r.lastYearSame}㎥</div></div>
+        <div class="detail-item"><div class="k">당월 (${MONTHS[12]})</div><div class="v">${r.currUsage}㎥</div></div>
+      </div>
+      <div class="reasoning">${reasoning}</div>
+      ${warnBox}
+      <div style="margin-top:12px;color:var(--ink-3);font-size:11.5px">
+        ※ 시행규칙 제26조 — 가: 전월 검침량이 정상 / 나: 비정상 4개월 평균 / 다: 변동이 크거나 여건의 현저한 변동 (담당자 종합 판단)
+      </div>
+    </div>
+  `;
+}
+
+function toggleDetail(seq) {
+  const r = rows.find(x => x.seq === seq);
+  if (!r) return;
+  r.expanded = !r.expanded;
+  renderTable();
+}
+
+function cycleVerdict(seq) {
+  const r = rows.find(x => x.seq === seq);
+  if (!r) return;
+  const order = ['가', '나', '다', '미조정'];
+  const curr = getFinalVerdict(r);
+  const next = order[(order.indexOf(curr) + 1) % order.length];
+  r.manualVerdict = next === r.autoVerdict ? null : next;
+  renderTable();
+  renderSummary();
+  renderFilters();
+}
+
+function resetVerdict(seq) {
+  const r = rows.find(x => x.seq === seq);
+  if (r) { r.manualVerdict = null; renderTable(); renderSummary(); renderFilters(); }
+}
+
+// ═══════════════════════════════════════════
+// 엑셀 출력
+// ═══════════════════════════════════════════
+function exportExcel() {
+  if (rows.length === 0) { toast('내보낼 자료가 없습니다.', 'error'); return; }
+
+  // 시행규칙 양식 그대로 재구성 (2개 섹션 분리)
+  const aoa = [];
+  aoa.push(['사용량 인정 조정내역']);
+  aoa.push([]);
+  aoa.push([PERIOD_TEXT || 'ㅇ 검침기간']);
+  aoa.push([]);
+
+  // 공통 헤더 생성 함수
+  function makeHeader1() {
+    const head1 = ['순번', '대표업종', '검침년월별 검침량'];
+    for (let i = 0; i < 12; i++) head1.push('');
+    head1.push('검침년월별 검침구분');
+    for (let i = 0; i < 12; i++) head1.push('');
+    head1.push('정상\n4개월\n합계', '정상전월\n사용량\n(가)', '정상검침\n4개월 평균\n(나)', '전년동월\n사용량\n(다)',
+               '미조정판단', '최초 산정 근거', '다 적용 검토', '산정근거', '일괄등록용', '부과량',
+               '메인계량기 당월지침', '', '계량기', '사유', '검토메모');
+    return head1;
+  }
+  function makeHeader2() {
+    const head2 = ['', ''];
+    MONTHS.forEach(m => head2.push(m));
+    MONTHS.forEach(m => head2.push(m));
+    for (let i = 0; i < 10; i++) head2.push('');
+    head2.push(`${MONTHS[11]}월`, `${MONTHS[12]}월`, '', '', '');
+    return head2;
+  }
+  function makeDataRow(r, seqOverride) {
+    const row = [seqOverride ?? r.seq, r.job];
+    MONTHS.forEach(m => row.push(r.usage[m]));
+    MONTHS.forEach(m => row.push(r.status[m]));
+    const finalV = getFinalVerdict(r);
+    // 최초 산정근거: 자동판정값(가/나/미조정)
+    // 다 적용 검토: 후보면 '다 검토', 아니면 자동판정값
+    // 산정근거: 최종(수동조정 포함)
+    row.push(
+      r.fourMonthSum,
+      r.prevMonthUsage,
+      r.fourMonthAvg,
+      r.lastYearSame,
+      r.isUnadjusted ? '미조정' : '조정대상',
+      r.autoVerdict,
+      r.daReviewCandidate ? '다 검토' : r.autoVerdict,
+      finalV,
+      `인정조정 '${finalV}' 부과`,
+      getFinalBilling(r),
+      r.mainPrev,
+      r.mainCurr,
+      r.meter,
+      r.reason,
+      r.recognizedWarning ? `⚠ 인정 ${r.totalRecognizedIncludingThis}회` : ''
+    );
+    return row;
+  }
+
+  const section1 = rows.filter(r => r.section === '일반계량기' || !r.section);
+  const section2 = rows.filter(r => r.section === '디지털·스마트');
+
+  // 섹션 1
+  if (section1.length > 0) {
+    aoa.push(['□ 일반계량기(기계식, 촬상식, 전자식)']);
+    aoa.push(makeHeader1());
+    aoa.push(makeHeader2());
+    section1.forEach((r, idx) => aoa.push(makeDataRow(r, idx + 1)));
+    aoa.push([]);
+  }
+
+  // 섹션 2
+  if (section2.length > 0) {
+    aoa.push(['□ 디지털, 스마트(디지털+수신기)계량기']);
+    aoa.push(makeHeader1());
+    aoa.push(makeHeader2());
+    section2.forEach((r, idx) => aoa.push(makeDataRow(r, idx + 1)));
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  // 열 너비
+  const colWidths = [{wch:5}, {wch:8}];
+  for (let i = 0; i < 13; i++) colWidths.push({wch:7});
+  for (let i = 0; i < 13; i++) colWidths.push({wch:8});
+  colWidths.push({wch:8}, {wch:8}, {wch:8}, {wch:8}, {wch:10}, {wch:10}, {wch:10}, {wch:8}, {wch:18}, {wch:8}, {wch:10}, {wch:10}, {wch:8}, {wch:14}, {wch:14});
+  ws['!cols'] = colWidths;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '인정조정내역');
+
+  // 조정근거 시트도 동봉
+  const reasonSheet = XLSX.utils.aoa_to_sheet([
+    [], [], ['『논산시 상수도급수조례시행규칙』'], [],
+    ['제26조(고장 계량기 등에 대한 사용수량의 인정)'], [],
+    ['① 조례 제32조제1항 단서 규정에 따라 사용량을 인정 조정하는 경우는 다음과 같다.'],
+    ['1. 계량기의 고장으로 계량된 양이 정상사용량이 아니라고 인정되는 경우에는 다음 각 호에 따라 조정한다.'], [],
+    ['가. 전회 검침량이 정상 사용량인 경우에는 전회 검침량으로 한다.'],
+    ['나. 전회 검침량이 정상 사용량이 아닌 경우에는 비정상 사용량을 제외한 직전 4개월의 평균사용량으로 한다.'],
+    ['다. 월별·계절별 사용량의 변동이 크거나 여건의 현저한 변동으로 가목 및 나목의 방법에 의해 조정하는 것이 불합리하다고 인정되는 때에는 전년도 사용량 등을 감안하여 조정할 수 있다.'],
+  ]);
+  reasonSheet['!cols'] = [{wch:120}];
+  XLSX.utils.book_append_sheet(wb, reasonSheet, '조정근거');
+
+  const now = new Date();
+  const fname = `사용량_인정조정내역_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.xlsx`;
+  XLSX.writeFile(wb, fname);
+  toast(`${fname} 다운로드 완료`, 'success');
+}
+
+// ═══════════════════════════════════════════
+// 유틸
+// ═══════════════════════════════════════════
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function toast(msg, kind) {
+  const t = document.createElement('div');
+  t.className = 'toast' + (kind ? ' ' + kind : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ═══════════════════════════════════════════
+// 도움말
+// ═══════════════════════════════════════════
+function showHelp() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-head">
+        <h3>사용법 안내</h3>
+        <button class="close" onclick="this.closest('.modal-overlay').remove()">×</button>
+      </div>
+      <div class="modal-body">
+        <h4>1. 입력</h4>
+        <p>전산쪽에서 받은 ERP 회신 엑셀(기존 양식 그대로, ‘일반계량기’ + ‘디지털·스마트’ 2개 섹션 인식)을 업로드하거나, 표를 복사해서 붙여넣기 탭에 붙이면 됩니다.</p>
+
+        <h4>2. 자동 판정 (가/나/미조정만)</h4>
+        <ol>
+          <li><b>메인계량기 검증</b>: 메인지침 전월값 + 당월 사용량 = 메인지침 당월값이면 <code>미조정</code></li>
+          <li><b>당월 검침이 정상</b>이면 → <code>가</code> (전월 검침량 적용)</li>
+          <li><b>당월 검침이 비정상</b>이면 → <code>나</code> (직전 4개월 평균)</li>
+        </ol>
+        <p style="color:var(--ink-3);margin-top:8px">※ 직전 4개월: 26-03이 ‘인정’이면 25-11~26-02, 아니면 25-12~26-03</p>
+
+        <h4>3. ⚐ 다 검토 후보 (자동 적용 X)</h4>
+        <p>4개월 평균이 전년동월 × 1.5 이상인 경우 <b>‘다 검토 후보’로만 표시</b>합니다. 자동으로 ‘다’를 적용하지 않습니다.</p>
+        <p style="color:var(--ink-3);margin-top:4px">시행규칙 다목은 ‘월별·계절별 변동이 크거나 여건의 현저한 변동’으로, 단순 1.5배 기준만으로는 판단할 수 없으며 담당자의 종합 검토가 필요합니다. 검토 후 ‘다 적용’이 맞다고 판단되면 행의 <b>다 적용</b> 버튼을 클릭하세요. ‘나’로 유지하는 것이 맞다면 그대로 두면 됩니다.</p>
+
+        <h4>4. ⚠ 인정계량 3회 이상 경고</h4>
+        <p>최근 13개월 중 ‘인정’ 검침구분 횟수에 이번 조정을 더했을 때 <b>3회 이상</b>이면 시행규칙 제26조 5항(인정계량 2회 초과 금지) 위반 가능성을 경고합니다.</p>
+        <p style="color:var(--ink-3);margin-top:4px">현실적으로 계량기 교체가 지연되어 발생할 수 있으나, 별도 확인·조치가 필요한 행으로 분류됩니다.</p>
+
+        <h4>5. 검토 · 수정</h4>
+        <p>각 행의 <b>최종 판정</b>을 클릭하면 가 → 나 → 다 → 미조정 순환 변경되며, 수동 변경 건은 <code>*</code> 표시가 붙고 ↺ 버튼으로 되돌릴 수 있습니다. 행 전체를 클릭하면 산출 근거 상세가 펼쳐집니다.</p>
+        <p>상단 필터 칩에서 <b>‘⚐ 다 검토 후보’</b>, <b>‘⚠ 인정 3회+’</b>로 검토가 필요한 행만 골라볼 수 있습니다.</p>
+
+        <h4>6. 출력</h4>
+        <p>엑셀 다운로드 버튼을 누르면 시행규칙 양식 그대로(2개 섹션 분리) ERP 일괄등록용 파일이 생성됩니다. ‘검토메모’ 컬럼에 인정 누적 횟수 경고가 함께 기록됩니다.</p>
+
+        <h4>주의사항</h4>
+        <ul>
+          <li>이 도구의 판정은 참고용입니다. 최종 인정조정은 담당자 판단으로 확정해주세요.</li>
+          <li>‘다 적용’은 계절요인·생활패턴·시설 변경 등을 종합 검토 후 담당자가 직접 판단·적용합니다.</li>
+        </ul>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+</script>
+
+</body>
+</html>
