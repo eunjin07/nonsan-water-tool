@@ -529,6 +529,188 @@
     color: var(--ink);
   }
   .warn-box b { color: var(--seal); }
+
+
+  /* ───── 모바일 대응 보정 ─────
+     QR 접속 시 휴대폰 화면에서 상단만 보이거나 좌우가 밀리는 현상을 줄이기 위한 반응형 설정 */
+  @media (max-width: 768px) {
+    html, body {
+      width: 100%;
+      overflow-x: hidden;
+      font-size: 13px;
+    }
+
+    header {
+      position: static;
+      padding: 12px 14px;
+    }
+
+    .header-inner {
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .mascot {
+      width: 48px;
+      height: 48px;
+    }
+
+    .title-wrap {
+      min-width: 0;
+      flex: 1 1 calc(100% - 60px);
+    }
+
+    .title-wrap h1 {
+      font-size: 16px;
+      line-height: 1.3;
+      word-break: keep-all;
+    }
+
+    .title-wrap .sub {
+      font-size: 10.5px;
+    }
+
+    .header-meta {
+      width: 100%;
+      gap: 8px;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      font-size: 10.5px;
+    }
+
+    .header-meta div { text-align: left; }
+
+    .header-meta .btn,
+    header .btn {
+      width: auto;
+      padding: 7px 10px;
+      font-size: 12px;
+    }
+
+    main {
+      padding: 14px 10px 56px;
+    }
+
+    .section {
+      margin-bottom: 14px;
+    }
+
+    .section-head {
+      padding: 10px 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .section-head .desc {
+      flex-basis: 100%;
+      margin-left: 32px;
+      font-size: 11px;
+    }
+
+    .section-body {
+      padding: 14px;
+    }
+
+    .input-tabs {
+      overflow-x: auto;
+    }
+
+    .tab {
+      flex: 1 0 auto;
+      padding: 10px 12px;
+    }
+
+    .upload-zone {
+      padding: 22px 12px;
+    }
+
+    .input-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .input-actions .sample {
+      margin-left: 0;
+    }
+
+    .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .summary-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .toolbar {
+      padding: 10px;
+      gap: 8px;
+    }
+
+    .toolbar input[type="text"] {
+      min-width: 0;
+      width: 100%;
+    }
+
+    .filter-chips {
+      width: 100%;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      flex-wrap: nowrap;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .chip {
+      flex: 0 0 auto;
+    }
+
+    .toolbar .right {
+      margin-left: 0;
+      width: 100%;
+    }
+
+    .table-wrap {
+      max-height: none;
+      overflow-x: auto;
+      overflow-y: visible;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      min-width: 1120px;
+      font-size: 11px;
+    }
+
+    th, td {
+      padding: 6px 8px;
+    }
+
+    .detail-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .modal {
+      width: 94%;
+      max-height: 85vh;
+    }
+
+    .modal-body {
+      padding: 18px;
+    }
+
+    footer {
+      padding: 16px 12px;
+    }
+
+    .toast {
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      text-align: center;
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -681,8 +863,13 @@ const MONTHS = ['25-04','25-05','25-06','25-07','25-08','25-09','25-10','25-11',
 // 탭 전환
 // ═══════════════════════════════════════════
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
+  // 모바일/일부 인앱 브라우저에서는 전역 event 객체가 안정적으로 전달되지 않을 수 있어
+  // 버튼 텍스트 기준으로 active 상태를 직접 지정합니다.
+  document.querySelectorAll('.tab').forEach(t => {
+    const isFileTab = name === 'file' && t.textContent.includes('엑셀');
+    const isPasteTab = name === 'paste' && t.textContent.includes('붙여넣기');
+    t.classList.toggle('active', isFileTab || isPasteTab);
+  });
   document.getElementById('tab-file').style.display = name === 'file' ? 'block' : 'none';
   document.getElementById('tab-paste').style.display = name === 'paste' ? 'block' : 'none';
 }
@@ -701,6 +888,10 @@ dropzone.addEventListener('drop', ev => {
 });
 
 function handleFile(event) {
+  if (typeof XLSX === 'undefined') {
+    toast('엑셀 처리 모듈을 불러오지 못했습니다. 휴대폰 기본 QR 브라우저 대신 Chrome/Safari에서 열거나, 인터넷/CDN 차단 여부를 확인해주세요.', 'error');
+    return;
+  }
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
