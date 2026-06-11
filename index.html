@@ -169,6 +169,29 @@
   .upload-zone p { color: var(--ink-2); font-size: 13px; }
   .upload-zone .hint { color: var(--ink-3); font-size: 11.5px; margin-top: 6px; }
 
+  .sample-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .sample-hint { color: var(--ink-3); font-size: 11.5px; }
+  .btn.sample-btn {
+    background: #2e7d32;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(46,125,50,.25);
+  }
+  .btn.sample-btn:hover { background: #1b5e20; }
+  @media (max-width: 640px) {
+    .sample-row { justify-content: center; }
+    .btn.sample-btn { width: 100%; justify-content: center; padding: 12px; font-size: 14px; }
+    header { padding: 14px 16px; }
+    main { padding: 16px 12px 60px; }
+    .header-meta { display: none; }
+  }
+
   textarea.paste-area {
     width: 100%;
     min-height: 200px;
@@ -529,188 +552,6 @@
     color: var(--ink);
   }
   .warn-box b { color: var(--seal); }
-
-
-  /* ───── 모바일 대응 보정 ─────
-     QR 접속 시 휴대폰 화면에서 상단만 보이거나 좌우가 밀리는 현상을 줄이기 위한 반응형 설정 */
-  @media (max-width: 768px) {
-    html, body {
-      width: 100%;
-      overflow-x: hidden;
-      font-size: 13px;
-    }
-
-    header {
-      position: static;
-      padding: 12px 14px;
-    }
-
-    .header-inner {
-      flex-wrap: wrap;
-      align-items: flex-start;
-      gap: 10px;
-    }
-
-    .mascot {
-      width: 48px;
-      height: 48px;
-    }
-
-    .title-wrap {
-      min-width: 0;
-      flex: 1 1 calc(100% - 60px);
-    }
-
-    .title-wrap h1 {
-      font-size: 16px;
-      line-height: 1.3;
-      word-break: keep-all;
-    }
-
-    .title-wrap .sub {
-      font-size: 10.5px;
-    }
-
-    .header-meta {
-      width: 100%;
-      gap: 8px;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      font-size: 10.5px;
-    }
-
-    .header-meta div { text-align: left; }
-
-    .header-meta .btn,
-    header .btn {
-      width: auto;
-      padding: 7px 10px;
-      font-size: 12px;
-    }
-
-    main {
-      padding: 14px 10px 56px;
-    }
-
-    .section {
-      margin-bottom: 14px;
-    }
-
-    .section-head {
-      padding: 10px 12px;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .section-head .desc {
-      flex-basis: 100%;
-      margin-left: 32px;
-      font-size: 11px;
-    }
-
-    .section-body {
-      padding: 14px;
-    }
-
-    .input-tabs {
-      overflow-x: auto;
-    }
-
-    .tab {
-      flex: 1 0 auto;
-      padding: 10px 12px;
-    }
-
-    .upload-zone {
-      padding: 22px 12px;
-    }
-
-    .input-actions {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .input-actions .sample {
-      margin-left: 0;
-    }
-
-    .btn {
-      width: 100%;
-      justify-content: center;
-    }
-
-    .summary-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .toolbar {
-      padding: 10px;
-      gap: 8px;
-    }
-
-    .toolbar input[type="text"] {
-      min-width: 0;
-      width: 100%;
-    }
-
-    .filter-chips {
-      width: 100%;
-      overflow-x: auto;
-      padding-bottom: 4px;
-      flex-wrap: nowrap;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .chip {
-      flex: 0 0 auto;
-    }
-
-    .toolbar .right {
-      margin-left: 0;
-      width: 100%;
-    }
-
-    .table-wrap {
-      max-height: none;
-      overflow-x: auto;
-      overflow-y: visible;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    table {
-      min-width: 1120px;
-      font-size: 11px;
-    }
-
-    th, td {
-      padding: 6px 8px;
-    }
-
-    .detail-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .modal {
-      width: 94%;
-      max-height: 85vh;
-    }
-
-    .modal-body {
-      padding: 18px;
-    }
-
-    footer {
-      padding: 16px 12px;
-    }
-
-    .toast {
-      left: 12px;
-      right: 12px;
-      bottom: 12px;
-      text-align: center;
-    }
-  }
-
 </style>
 </head>
 <body>
@@ -759,6 +600,12 @@
           <div class="hint">.xlsx, .xls 지원 · 시행규칙 양식 그대로 인식</div>
         </div>
         <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none" onchange="handleFile(event)">
+        <div class="sample-row">
+          <span class="sample-hint">파일이 없어도 체험할 수 있어요</span>
+          <button class="btn sample-btn" onclick="loadSample()">
+            ▶ 시뮬레이션 (5월분 샘플 데이터)
+          </button>
+        </div>
       </div>
 
       <div id="tab-paste" class="tab-content" style="display:none">
@@ -857,19 +704,31 @@ let rows = [];          // 모든 처리된 데이터
 let activeFilter = 'all';
 
 // 컬럼 정의: 13개월 키
-const MONTHS = ['25-04','25-05','25-06','25-07','25-08','25-09','25-10','25-11','25-12','26-01','26-02','26-03','26-04'];
+let MONTHS = ['25-04','25-05','25-06','25-07','25-08','25-09','25-10','25-11','25-12','26-01','26-02','26-03','26-04'];
+let COL_OFFSET = 0;      // 양식에 '비고' 컬럼(C열)이 있으면 1로 자동 전환
+let PERIOD_TEXT = '';    // 파일에서 읽은 검침기간 문구
+
+// ═══════════════════════════════════════════
+// 내장 샘플 데이터 (2026년 5월분 테스트용, 개인정보 없음)
+// QR 접속 시 파일 없이 바로 시뮬레이션 체험 가능
+// ═══════════════════════════════════════════
+const SAMPLE_DATA = [["사용량 인정 조정내역",null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[],["ㅇ 검침기간 : 2026.4.26. ~ 2026.5.25.(2026.5. 수납분)",null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[],["□ 일반계량기(기계식, 촬상식, 전자식)",null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],["순번","대표업종","비고","검침년월별 검침량",null,null,null,null,null,null,null,null,null,null,null,null,"검침년월별 검침구분",null,null,null,null,null,null,null,null,null,null,null,null,"정상\n4개월\n합계","정상전월\n사용량\n(가)","정상검침\n4개월 평균\n(나)","전년동월\n사용량\n(다)","미조정판단","최초 산정 근거","다 적용 검토","산정\n근거","일괄등록용","부과량","메인계량기 당월지침",null,"계량기","사유"],[null,null,null,"25-05","25-06","25-07","25-08","25-09","25-10","25-11","25-12","26-01","26-02","26-03","26-04","26-05","25-05","25-06","25-07","25-08","25-09","25-10","25-11","25-12","26-01","26-02","26-03","26-04","26-05",null,null,null,null,null,null,null,null,null,null,"26-04월","26-05월",null,null],[1,"일반용",null,697,624,701,564,768,880,800,680,621,262,435,505,876,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상",1823,505,455,697,null,null,null,null,null,null,29285,30161,"전자식","모니터지침불량"],[2,"가정용",null,14378,14365,14981,14783,13991,14961,14091,14319,14042,13211,13904,14004,14105,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상",55161,14004,13790,14378,null,null,null,null,null,null,843879,857984,"전자식","벽 전자식 깜빡거림"],[3,"가정용",null,7,6,6,6,22,35,6,6,3,22,6,12,6,"정상","정상","정상","정상","정상","정상","교체","정상","정상","정상","정상","정상","정상",43,12,10,7,null,null,null,null,null,null,55,61,"촬상식","못불러옴"],[4,"일반용",null,30,29,30,33,32,32,28,28,31,30,30,22,30,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","정상","정상",113,22,28,30,null,null,null,null,null,null,1359,1389,"촬상식","못불러옴"],[5,"가정용",null,10,15,12,10,9,14,9,8,15,7,15,15,11,"정상","정상","정상","정상","정상","정상","교체","정상","정상","정상","정상","정상","정상",52,15,13,10,null,null,null,null,null,null,66,77,"촬상식","접속안됨(접촉불량)"],[6,"가정용",null,0,0,0,0,0,1,0,0,0,0,1,1,2,"정상","정상","정상","정상","정상","정상","정상","교체","정상","정상","정상","정상","정상",2,1,0,0,null,null,null,null,null,null,3,5,"촬상식","카메라위치안맞음"],[7,"가정용",null,36,38,25,25,21,9,16,13,10,12,16,19,42,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상",57,19,14,36,null,null,null,null,null,null,963,1005,"촬상식","못불러옴"],[8,"가정용",null,19,18,16,18,29,19,16,16,22,21,17,14,19,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상",74,14,18,19,null,null,null,null,null,null,1151,1170,"촬상식","못불러옴"],[9,"일반용",null,40,38,35,36,35,33,31,45,32,28,29,37,28,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상",126,37,31,40,null,null,null,null,null,null,1923,1951,"촬상식","못불러옴"],[10,"가정용",null,11,10,17,15,13,11,10,11,10,19,11,9,16,"정상","정상","정상","정상","정상","정상","교체","정상","정상","정상","정상","정상","정상",49,9,12,11,null,null,null,null,null,null,70,86,"촬상식","못불러옴"],[],["□ 디지털, 스마트(디지털+수신기)계량기",null,null,"",null,"","",null,null,"",null,null,null,null,null,null,"",null,"","",null,null,"",null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],["순번","대표업종","비고","검침년월별 검침량",null,null,null,null,null,null,null,null,null,null,null,null,"검침년월별 검침구분",null,null,null,null,null,null,null,null,null,null,null,null,"정상\n4개월\n합계","정상전월\n사용량\n(가)","정상검침\n4개월 평균\n(나)","전년동월\n사용량\n(다)","미조정판단","최초 산정 근거","다 적용 검토","산정\n근거","일괄등록용","부과량","메인계량기 당월지침",null,"계량기","사유"],[null,null,null,"25-05","25-06","25-07","25-08","25-09","25-10","25-11","25-12","26-01","26-02","26-03","26-04","26-05","25-05","25-06","25-07","25-08","25-09","25-10","25-11","25-12","26-01","26-02","26-03","26-04","26-05",null,null,null,null,null,null,null,null,null,null,"26-04월","26-05월",null,null],[1,"가정용",null,18,22,21,27,24,18,21,17,11,9,9,13,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",42,13,10,18,null,null,null,null,null,null,824,null,"스마트","지침불규칙"],[2,"가정용",null,5,7,5,6,4,4,3,3,4,4,2,2,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",13,2,3,5,null,null,null,null,null,null,209,null,"스마트","액정나감"],[3,"가정용",null,1,8,1,1,1,0,0,1,0,21,0,3,null,"정상","정상","정상","정상","인정","정상","정상","정상","정상","정상","정상","정상","미검침",24,3,6,1,null,null,null,null,null,null,25,null,"스마트","지침불규칙"],[4,"가정용",null,21,17,17,20,20,22,25,20,15,17,14,15,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",61,15,15,21,null,null,null,null,null,null,883,null,"스마트","지침불규칙"],[5,"가정용",null,44,0,0,0,0,0,13,2,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,44,null,null,null,null,null,null,129,null,"디지털","습기차서 숫자식별안됨"],[6,"가정용",null,12,11,11,10,9,9,7,8,11,13,14,14,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",46,14,11,12,null,null,null,null,null,null,369,null,"디지털","액정나감"],[7,"가정용",null,22,24,24,20,33,22,10,2,2,1,2,1,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",6,1,1,22,null,null,null,null,null,null,529,null,"디지털",null],[8,"가정용",null,22,21,19,21,22,21,11,19,27,29,12,1,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",69,1,17,22,null,null,null,null,null,null,589,null,"스마트","액정나감"],[9,"가정용",null,10,12,8,11,15,24,1,17,6,5,11,10,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",32,10,8,10,null,null,null,null,null,null,569,null,"스마트","액정나감"],[10,"가정용",null,30,33,40,41,44,44,20,27,26,26,29,24,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","인정","인정","미검침",108,29,27,30,null,null,null,null,null,null,1708,null,"디지털","액정나감"],[11,"가정용",null,2,2,2,0,2,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,2,null,null,null,null,null,null,57,null,"디지털","액정나감"],[12,"가정용",null,4,4,4,4,4,4,3,3,3,3,4,4,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",13,4,3,4,null,null,null,null,null,null,227,null,"디지털","액정나감"],[13,"가정용",null,15,8,17,1,13,13,8,8,8,12,8,8,null,"교체","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",36,8,9,15,null,null,null,null,null,null,117,null,"디지털","액정나감"],[14,"가정용",null,5,3,7,10,7,5,4,3,8,11,4,4,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",26,4,6,5,null,null,null,null,null,null,270,null,"디지털","액정나감"],[15,"일반용",null,29,31,22,37,27,24,25,33,26,26,25,22,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",99,22,24,29,null,null,null,null,null,null,2087,null,"디지털","액정나감"],[16,"가정용",null,104,115,100,113,107,116,112,117,114,142,108,108,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",481,108,120,104,null,null,null,null,null,null,5410,null,"디지털","액정나감"],[17,"일반용",null,68,91,84,73,81,73,63,61,62,58,59,59,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",240,59,60,68,null,null,null,null,null,null,3383,null,"디지털","액정나감"],[18,"가정용",null,16,23,16,21,20,16,13,18,15,15,14,14,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",62,14,15,16,null,null,null,null,null,null,454,null,"디지털","액정나감"],[19,"가정용",null,18,22,20,24,19,19,10,16,15,17,15,15,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",63,15,15,18,null,null,null,null,null,null,1039,null,"디지털","액정나감"],[20,"가정용",null,0,0,0,0,0,0,0,0,1,0,1,12,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",14,12,3,0,null,null,null,null,null,null,202,null,"디지털","지침수사라짐"],[21,"가정용",null,25,0,0,0,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,25,null,null,null,null,null,null,89,null,"디지털","액정나감"],[22,"가정용",null,19,47,44,50,44,45,42,38,38,47,32,32,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",155,32,38,19,null,null,null,null,null,null,1318,null,"디지털","액정나감"],[23,"가정용",null,11,10,76,82,75,8,4,2,3,2,5,56,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",66,56,16,11,null,null,null,null,null,null,401,null,"디지털","지침리셋"],[24,"가정용",null,0,0,0,0,0,0,0,0,1,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",1,0,0,0,null,null,null,null,null,null,1,null,"디지털","액정아웃"],[25,"가정용",null,0,0,0,0,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","인정","인정","인정","정상","정상","정상","정상","미검침",0,0,0,0,null,null,null,null,null,null,0,null,"디지털","액정아웃"],[26,"일반용",null,5,5,5,8,7,6,5,4,5,5,6,6,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",20,6,5,5,null,null,null,null,null,null,227,null,"디지털","액정아웃"],[27,"가정용",null,7,11,5,5,4,8,4,6,4,4,5,4,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",17,4,4,7,null,null,null,null,null,null,871,null,"디지털","액정아웃"],[28,"가정용",null,6,5,5,3,1,6,5,6,6,5,6,6,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",23,6,5,6,null,null,null,null,null,null,254,null,"디지털","액정아웃"],[29,"가정용",null,0,0,0,0,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,0,null,null,null,null,null,null,5,null,"디지털","액정아웃"],[30,"가정용",null,4,29,43,6,4,4,4,1,4,3,3,3,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",11,3,2,4,null,null,null,null,null,null,163,null,"디지털","액정아웃"],[31,"가정용",null,7,12,15,12,13,16,15,15,14,18,18,17,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",67,17,16,7,null,null,null,null,null,null,467,null,"디지털","액정아웃"],[32,"가정용",null,0,2,7,4,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,0,null,null,null,null,null,null,38,null,"디지털","지침수확인불가"],[33,"가정용",null,11,11,12,13,11,14,10,10,4,10,15,15,null,"정상","정상","정상","정상","정상","정상","정상","인정","정상","정상","정상","인정","미검침",39,15,9,11,null,null,null,null,null,null,487,null,"디지털","액정아웃"],[34,"가정용",null,4,4,4,4,3,5,4,3,2,1,4,1,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",8,1,2,4,null,null,null,null,null,null,140,null,"디지털","액정아웃"],[35,"가정용",null,2,6,4,9,3,1,1,1,2,3,2,2,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",9,2,2,2,null,null,null,null,null,null,253,null,"스마트","액정나감"],[36,"가정용",null,19,18,7,4,4,16,3,0,0,5,4,2,null,"정상","정상","정상","정상","정상","정상","정상","정상","인정","인정","인정","인정","미검침",9,4,2,19,null,null,null,null,null,null,294,null,"스마트","액정나감"],[37,"가정용",null,14,19,21,18,17,19,13,12,14,11,13,15,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",53,15,13,14,null,null,null,null,null,null,893,null,"스마트","액정나감"],[38,"가정용",null,4,0,0,0,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,4,null,null,null,null,null,null,270,null,"스마트","액정나감"],[39,"가정용",null,8,9,10,9,7,13,8,7,10,9,9,16,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",44,16,11,8,null,null,null,null,null,null,762,null,"스마트","액정나감"],[40,"가정용",null,2,3,5,5,2,2,3,0,0,0,1,1,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",2,1,0,2,null,null,null,null,null,null,97,null,"스마트","액정나감"],[41,"가정용",null,16,0,0,12,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,16,null,null,null,null,null,null,128,null,"스마트","액정나감"],[42,"가정용",null,4,5,4,5,4,5,3,3,0,0,0,1,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",1,1,0,4,null,null,null,null,null,null,224,null,"스마트","액정나감"],[43,"가정용",null,25,28,31,28,29,27,32,24,22,27,21,17,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",87,17,21,25,null,null,null,null,null,null,1409,null,"스마트","액정나감"],[44,"가정용",null,14,19,16,22,19,17,18,15,12,11,9,12,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",44,12,11,14,null,null,null,null,null,null,205,null,"스마트","액정나감"],[45,"가정용",null,3,3,4,3,1,2,1,0,6,1,1,1,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",8,1,2,3,null,null,null,null,null,null,193,null,"스마트","지침부동"],[46,"가정용",null,0,0,0,0,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","인정","정상","정상","정상","인정","미검침",0,0,0,0,null,null,null,null,null,null,1,null,"스마트","액정나감"],[47,"가정용",null,0,0,1,0,0,2,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","인정","정상","정상","정상","인정","미검침",0,0,0,0,null,null,null,null,null,null,73,null,"스마트","액정나감"],[48,"가정용",null,0,0,0,0,0,0,0,1,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",0,0,0,0,null,null,null,null,null,null,8,null,"스마트","액정나감"],[49,"일반용",null,0,1,1,0,1,3,0,1,0,1,0,1,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",2,1,0,0,null,null,null,null,null,null,37,null,"스마트","액정나감"],[50,"가정용",null,5,9,16,10,0,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","인정","인정","정상","정상","정상","인정","미검침",0,0,0,5,null,null,null,null,null,null,381,null,"스마트","액정나감"],[51,"가정용",null,9,9,15,15,12,14,10,10,8,10,6,6,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",34,6,8,9,null,null,null,null,null,null,660,null,"스마트","액정나감"],[52,"가정용",null,9,10,9,8,9,10,7,13,6,8,5,5,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",32,5,8,9,null,null,null,null,null,null,538,null,"스마트","액정아웃"],[53,"가정용",null,3,5,4,6,5,7,2,1,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","미검침",1,0,0,3,null,null,null,null,null,null,131,null,"스마트","액정아웃"],[54,"가정용",null,8,9,3,9,3,0,0,0,0,0,0,0,null,"정상","정상","정상","정상","정상","정상","정상","정상","인정","인정","인정","인정","미검침",0,0,0,8,null,null,null,null,null,null,103,null,"스마트","액정아웃"],[55,"가정용",null,28,32,30,36,29,34,30,29,35,42,38,35,null,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","미검침",150,35,37,28,null,null,null,null,null,null,1935,null,"스마트","지침리셋"],[56,"가정용",null,32,33,19,3,3,21,26,28,31,28,24,24,null,"정상","정상","정상","정상","인정","정상","정상","정상","정상","정상","정상","정상","미검침",107,24,26,32,null,null,null,null,null,null,815,null,"스마트","지침부동"],[57,"가정용",null,14,9,18,9,13,11,12,11,11,11,14,7,12,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",43,7,10,14,null,null,null,null,null,null,566,78,"스마트","숫자사라짐(백의자리)"],[58,"가정용",null,11,12,11,14,11,15,13,13,12,9,12,9,11,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",42,9,10,11,null,null,null,null,null,null,523,34,"스마트","숫자사라짐(백의자리)"],[59,"가정용",null,1,0,1,0,0,2,0,1,4,7,0,0,1,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",11,0,2,1,null,null,null,null,null,null,581,82,"스마트","숫자사라짐(백의자리)"],[60,"가정용",null,27,28,29,32,38,27,10,17,16,19,15,17,18,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",67,17,16,27,null,null,null,null,null,null,393,11,"스마트","숫자사라짐(백의자리)"],[61,"가정용",null,2,4,3,1,1,1,0,2,0,0,2,1,2,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",3,1,0,2,null,null,null,null,null,null,179,81,"스마트","숫자사라짐(백의자리)"],[62,"일반용",null,0,1,0,1,0,1,0,0,0,1,0,0,0,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",1,0,0,0,null,null,null,null,null,null,53,53,"디지털","액정나감"],[63,"가정용",null,1,1,0,1,0,1,0,0,0,0,0,0,0,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",0,0,0,1,null,null,null,null,null,null,45,45,"디지털","액정나감"],[64,"가정용",null,6,4,4,17,23,25,5,5,4,6,0,0,9,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",10,0,2,6,null,null,null,null,null,null,439,48,"디지털","숫자사라짐(백의자리)"],[65,"가정용",null,21,23,26,29,27,23,22,19,23,18,17,19,24,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",77,19,19,21,null,null,null,null,null,null,996,24,"디지털","숫자사라짐(백의자리)"],[66,"가정용",null,14,19,20,24,18,19,15,12,11,12,14,11,16,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",48,11,12,14,null,null,null,null,null,null,755,71,"디지털","숫자사라짐(백의자리)"],[67,"가정용",null,20,19,17,17,18,19,14,14,12,13,11,10,14,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",46,10,11,20,null,null,null,null,null,null,684,98,"디지털","숫자사라짐(백의자리)"],[68,"일반용",null,16,21,23,25,19,20,20,21,21,12,11,16,17,"정상","정상","정상","정상","정상","정상","인정","인정","정상","정상","정상","정상","인정",60,16,15,16,null,null,null,null,null,null,101,18,"디지털","숫자사라짐(백의자리)"],[69,"일반용",null,4,11,8,15,5,10,9,7,6,6,7,11,5,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",30,11,7,4,null,null,null,null,null,null,232,5,"디지털","지침리셋"],[70,"가정용",null,52,51,58,68,57,63,50,53,83,77,91,86,83,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",337,86,84,52,null,null,null,null,null,null,1728,811,"디지털","숫자사라짐(천의자리)"],[71,"일반용",null,0,5,12,82,129,0,0,0,0,0,0,11,1,"정상","정상","인정","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",11,11,2,0,null,null,null,null,null,null,234,35,"디지털","숫자사라짐(백의자리)"],[72,"가정용",null,3,3,3,4,2,6,3,7,3,3,3,4,3,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",13,4,3,3,null,null,null,null,null,null,113,16,"디지털","숫자사라짐(백의자리)"],[73,"일반용",null,12,19,17,24,8,14,13,16,14,10,10,8,16,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",42,8,10,12,null,null,null,null,null,null,662,78,"디지털","숫자사라짐(백의자리)"],[74,"가정용",null,11,14,15,14,12,11,9,11,8,8,9,9,12,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",34,9,8,11,null,null,null,null,null,null,498,10,"디지털","숫자사라짐(백의자리)"],[75,"가정용",null,10,15,42,22,5,4,1,5,0,0,1,1,12,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",2,1,0,10,null,null,null,null,null,null,322,34,"디지털","숫자사라짐(백의자리)"],[76,"가정용",null,14,16,15,20,14,16,16,11,13,17,11,10,13,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",51,10,12,14,null,null,null,null,null,null,331,44,"디지털","숫자사라짐(백의자리)"],[77,"가정용",null,44,34,31,40,31,34,39,29,24,34,42,43,38,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",143,43,35,44,null,null,null,null,null,null,643,81,"디지털","숫자사라짐(백의자리)"],[78,"가정용",null,13,13,18,16,13,12,11,13,11,10,13,10,15,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",44,10,11,13,null,null,null,null,null,null,166,81,"디지털","숫자사라짐(백의자리)"],[79,"가정용",null,12,14,12,15,14,12,10,9,7,8,8,9,10,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",32,9,8,12,null,null,null,null,null,null,262,72,"디지털","숫자사라짐(백의자리)"],[80,"가정용",null,1,0,1,16,23,10,6,3,0,0,0,0,0,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정","인정",3,0,0,1,null,null,null,null,null,null,94,94,"스마트","액정아웃"],[81,"일반용",null,0,0,0,0,0,0,0,0,0,0,7,0,0,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",7,0,1,0,null,null,null,null,null,null,370,70,"디지털","숫자사라짐(백의자리)"],[82,"가정용",null,0,1,0,1,0,1,7,1,0,0,0,1,0,"정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","정상","인정",1,1,0,0,null,null,null,null,null,null,19,19,"디지털","액정나감"]];
+
+function loadSample() {
+  parseExcelData(SAMPLE_DATA);
+  // 결과 영역으로 부드럽게 스크롤 (모바일 체험 흐름)
+  setTimeout(() => {
+    const el = document.getElementById('summary-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 300);
+}
 
 // ═══════════════════════════════════════════
 // 탭 전환
 // ═══════════════════════════════════════════
 function switchTab(name) {
-  // 모바일/일부 인앱 브라우저에서는 전역 event 객체가 안정적으로 전달되지 않을 수 있어
-  // 버튼 텍스트 기준으로 active 상태를 직접 지정합니다.
-  document.querySelectorAll('.tab').forEach(t => {
-    const isFileTab = name === 'file' && t.textContent.includes('엑셀');
-    const isPasteTab = name === 'paste' && t.textContent.includes('붙여넣기');
-    t.classList.toggle('active', isFileTab || isPasteTab);
-  });
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
   document.getElementById('tab-file').style.display = name === 'file' ? 'block' : 'none';
   document.getElementById('tab-paste').style.display = name === 'paste' ? 'block' : 'none';
 }
@@ -888,10 +747,6 @@ dropzone.addEventListener('drop', ev => {
 });
 
 function handleFile(event) {
-  if (typeof XLSX === 'undefined') {
-    toast('엑셀 처리 모듈을 불러오지 못했습니다. 휴대폰 기본 QR 브라우저 대신 Chrome/Safari에서 열거나, 인터넷/CDN 차단 여부를 확인해주세요.', 'error');
-    return;
-  }
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -924,6 +779,12 @@ function parseExcelData(data) {
     const row = data[i] || [];
     const firstCell = toStr(row[0]);
 
+    // 검침기간 문구 캡처
+    if (firstCell.includes('검침기간')) {
+      PERIOD_TEXT = firstCell;
+      continue;
+    }
+
     // 섹션 구분자 인식
     if (firstCell.includes('□') || firstCell.includes('일반계량기') || firstCell.includes('디지털')) {
       if (firstCell.includes('일반계량기')) currentSection = '일반계량기';
@@ -935,12 +796,21 @@ function parseExcelData(data) {
 
     // 섹션 안에서 "순번" 헤더를 만나면 그 다음부터 데이터
     if (currentSection && firstCell === '순번') {
+      // 컬럼 오프셋 자동 감지: C열이 '비고'면 전체가 한 칸 밀린 신양식
+      COL_OFFSET = (toStr(row[2]) === '비고') ? 1 : 0;
       inDataMode = false;
       headerRowsToSkip = 1; // 다음 행(서브헤더)도 스킵
       continue;
     }
     if (currentSection && headerRowsToSkip > 0) {
       headerRowsToSkip--;
+      // 서브헤더에서 월 라벨 자동 추출 (예: 25-05 ~ 26-05)
+      const monthLabels = [];
+      for (let m = 0; m < 13; m++) {
+        const lbl = toStr(row[2 + COL_OFFSET + m]);
+        if (/^\d{2}-\d{2}$/.test(lbl)) monthLabels.push(lbl);
+      }
+      if (monthLabels.length === 13) MONTHS = monthLabels;
       if (headerRowsToSkip === 0) inDataMode = true;
       continue;
     }
@@ -974,20 +844,21 @@ function parseRowFromArray(row) {
   const seq = row[0];
   const job = row[1];
   if (seq == null || seq === '') return null;
+  const o = COL_OFFSET;  // '비고' 컬럼 있는 신양식이면 1
   const usage = {}, status = {};
   MONTHS.forEach((m, idx) => {
-    usage[m] = toNum(row[2 + idx]);
-    status[m] = toStr(row[15 + idx]);
+    usage[m] = toNum(row[2 + o + idx]);
+    status[m] = toStr(row[15 + o + idx]);
   });
   return {
     seq: seq,
     job: toStr(job) || '',
     usage,
     status,
-    mainPrev: toNum(row[38]),
-    mainCurr: toNum(row[39]),
-    meter: toStr(row[40]) || '',
-    reason: toStr(row[41]) || '',
+    mainPrev: toNum(row[38 + o]),
+    mainCurr: toNum(row[39 + o]),
+    meter: toStr(row[40 + o]) || '',
+    reason: toStr(row[41 + o]) || '',
   };
 }
 
@@ -1041,23 +912,24 @@ function parsePaste() {
 function computeJudgement(r) {
   // 13개월 중 직전 4개월 = 25-12, 26-01, 26-02, 26-03 (당월 26-04 제외)
   // 단, 26-03이 "인정"이면 한 칸 당겨 25-11, 25-12, 26-01, 26-02
-  const currStatus = r.status['26-04'];
-  const prevStatus = r.status['26-03'];
+  // 월 인덱스: MONTHS[0]=전년동월(t-12), MONTHS[11]=전월(t-1), MONTHS[12]=당월(t-0)
+  const currStatus = r.status[MONTHS[12]];
+  const prevStatus = r.status[MONTHS[11]];
 
   let fourMonthKeys;
   if (prevStatus === '인정') {
-    fourMonthKeys = ['25-11','25-12','26-01','26-02'];
+    fourMonthKeys = [MONTHS[7], MONTHS[8], MONTHS[9], MONTHS[10]];
   } else {
-    fourMonthKeys = ['25-12','26-01','26-02','26-03'];
+    fourMonthKeys = [MONTHS[8], MONTHS[9], MONTHS[10], MONTHS[11]];
   }
   const fourMonthSum = fourMonthKeys.reduce((a, k) => a + (r.usage[k] || 0), 0);
   const fourMonthAvg = Math.floor(fourMonthSum / 4);
 
-  const prevMonthKey = prevStatus === '인정' ? '26-02' : '26-03';
+  const prevMonthKey = prevStatus === '인정' ? MONTHS[10] : MONTHS[11];
   const prevMonthUsage = r.usage[prevMonthKey] || 0;
 
-  const lastYearSame = r.usage['25-04'] || 0;
-  const currUsage = r.usage['26-04'] || 0;
+  const lastYearSame = r.usage[MONTHS[0]] || 0;
+  const currUsage = r.usage[MONTHS[12]] || 0;
 
   // AG: 미조정판단 - 메인계량기 검증
   let isUnadjusted;
@@ -1250,7 +1122,7 @@ function renderRow(r) {
       <td class="num">${r.lastYearSame || '—'}</td>
       <td class="num" style="text-align:center">${last4Display}</td>
       <td class="num ${(r.currUsage > r.fourMonthAvg * 2 && r.fourMonthAvg > 0) ? 'abnormal' : ''}">${r.currUsage}</td>
-      <td class="month-status s-${r.status['26-04']}">${r.status['26-04'] || '—'}</td>
+      <td class="month-status s-${r.status[MONTHS[12]]}">${r.status[MONTHS[12]] || '—'}</td>
       <td class="num">${r.fourMonthSum}</td>
       <td class="num">${r.prevMonthUsage}</td>
       <td class="num">${r.fourMonthAvg}</td>
@@ -1284,7 +1156,7 @@ function setVerdict(seq, verdict) {
 
 function renderDetail(r) {
   const last4Keys = r.fourMonthKeys;
-  const prevMonthLabel = r.prevMonthKey === '26-02' ? '26-02 (26-03 인정이라 한칸 당김)' : '26-03';
+  const prevMonthLabel = r.prevMonthKey === MONTHS[10] ? `${MONTHS[10]} (${MONTHS[11]} 인정이라 한칸 당김)` : MONTHS[11];
 
   // 판정 추론 과정
   let reasoning = '';
@@ -1296,10 +1168,10 @@ function renderDetail(r) {
     } else {
       reasoning += `<div class="step">메인계량기 검증: ${r.mainPrev || 0} + ${r.currUsage} ≠ ${r.mainCurr} <span class="arrow">→</span> 조정대상</div>`;
     }
-    if (r.status['26-04'] === '정상') {
+    if (r.status[MONTHS[12]] === '정상') {
       reasoning += `<div class="step">당월 검침 정상 <span class="arrow">→</span> <b>가</b> 자동 판정 (전월 사용량 적용)</div>`;
     } else {
-      reasoning += `<div class="step">당월 검침 비정상(${r.status['26-04']}) <span class="arrow">→</span> <b>나</b> 자동 판정 (4개월 평균 ${r.fourMonthAvg}㎥ 적용)</div>`;
+      reasoning += `<div class="step">당월 검침 비정상(${r.status[MONTHS[12]]}) <span class="arrow">→</span> <b>나</b> 자동 판정 (4개월 평균 ${r.fourMonthAvg}㎥ 적용)</div>`;
     }
     if (r.daReviewCandidate) {
       reasoning += `<div class="step da-hint">⚐ <b style="color:var(--warn)">다 적용 검토 후보</b>: 4개월평균 ${r.fourMonthAvg}㎥ ≥ 전년동월 ${r.lastYearSame}㎥ × 1.5 = ${(r.lastYearSame*1.5).toFixed(1)}㎥ <br><span style="color:var(--ink-3);font-size:11.5px;margin-left:18px">→ 계절요인·생활패턴 변화 등을 종합 검토 후 ‘다 적용’ 버튼으로 변경하세요. 단순 1.5배 기준만으로 자동 적용하지 않습니다.</span></div>`;
@@ -1324,8 +1196,8 @@ function renderDetail(r) {
       <div class="detail-grid">
         <div class="detail-item"><div class="k">직전 4개월 (${last4Keys.join(', ')})</div><div class="v">합계 ${r.fourMonthSum}㎥ / 평균 ${r.fourMonthAvg}㎥</div></div>
         <div class="detail-item"><div class="k">전월 ${prevMonthLabel}</div><div class="v">${r.prevMonthUsage}㎥</div></div>
-        <div class="detail-item"><div class="k">전년동월 (25-04)</div><div class="v">${r.lastYearSame}㎥</div></div>
-        <div class="detail-item"><div class="k">당월 (26-04)</div><div class="v">${r.currUsage}㎥</div></div>
+        <div class="detail-item"><div class="k">전년동월 (${MONTHS[0]})</div><div class="v">${r.lastYearSame}㎥</div></div>
+        <div class="detail-item"><div class="k">당월 (${MONTHS[12]})</div><div class="v">${r.currUsage}㎥</div></div>
       </div>
       <div class="reasoning">${reasoning}</div>
       ${warnBox}
@@ -1370,7 +1242,7 @@ function exportExcel() {
   const aoa = [];
   aoa.push(['사용량 인정 조정내역']);
   aoa.push([]);
-  aoa.push(['ㅇ 검침기간 : 2025.3.26. ~ 2026.4.25.(2026.4. 수납분)']);
+  aoa.push([PERIOD_TEXT || 'ㅇ 검침기간']);
   aoa.push([]);
 
   // 공통 헤더 생성 함수
@@ -1389,7 +1261,7 @@ function exportExcel() {
     MONTHS.forEach(m => head2.push(m));
     MONTHS.forEach(m => head2.push(m));
     for (let i = 0; i < 10; i++) head2.push('');
-    head2.push('26-03월', '26-04월', '', '', '');
+    head2.push(`${MONTHS[11]}월`, `${MONTHS[12]}월`, '', '', '');
     return head2;
   }
   function makeDataRow(r, seqOverride) {
